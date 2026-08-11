@@ -113,7 +113,10 @@ function Home() {
 
   const all = tournaments.data ?? [];
   const active = all.find((t) => t.status === "live") ?? null;
+  const upcoming = all.find((t) => t.status === "upcoming") ?? null;
+  const featuredTourney = active ?? upcoming ?? null;
   const archive = all.filter((t) => t.status === "completed" || t.status === "archived");
+
   const teamMap = new Map((teams.data ?? []).map((t) => [t.id, t]));
   const championByTournament = new Map(
     (champions.data ?? []).map((c) => [c.tournament_id, c.champion_team_id]),
@@ -122,6 +125,40 @@ function Home() {
   return (
     <div>
       <Hero />
+
+      {/* Full-width Tournament Poster Ad */}
+      {featuredTourney?.logo_url && (
+        <Link
+          to="/tournament/$slug"
+          params={{ slug: featuredTourney.slug }}
+          className="block relative w-full overflow-hidden group cursor-pointer"
+          style={{ maxHeight: "520px" }}
+        >
+          <img
+            src={featuredTourney.logo_url}
+            alt={featuredTourney.name}
+            className="w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+            style={{ maxHeight: "520px" }}
+          />
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+          {/* Text overlay */}
+          <div className="absolute bottom-10 left-8 sm:left-16">
+            <StatusBadge status={featuredTourney.status} />
+            <h2 className="mt-3 text-4xl sm:text-6xl font-display font-bold uppercase text-white drop-shadow-2xl tracking-wide leading-tight">
+              {featuredTourney.name}
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-white/70 font-medium tracking-wider uppercase">
+              {featuredTourney.format?.replace(/_/g, " ")} · Season {featuredTourney.season_year}
+            </p>
+            <span className="mt-5 inline-flex items-center gap-2 rounded-full bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-5 py-2.5 transition-colors shadow-lg">
+              View Tournament <ArrowRight className="size-4" />
+            </span>
+          </div>
+        </Link>
+      )}
+
       <div className="mx-auto max-w-7xl space-y-20 px-4 py-16 sm:px-6">
         <LiveStreamSection liveUrl={config.data?.youtube_live_url} />
 
