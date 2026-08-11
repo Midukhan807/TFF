@@ -287,7 +287,7 @@ export function TournamentCard({
     >
       {/* 1. Header Banner Image */}
       <div 
-        className="relative h-44 w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+        className="relative h-64 w-full bg-cover bg-top transition-transform duration-500 group-hover:scale-105"
         style={bannerStyle}
       >
         {/* Glow overlay */}
