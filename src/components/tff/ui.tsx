@@ -201,14 +201,6 @@ export function TeamCard({ team }: { team: Team }) {
           <span className="font-display text-white font-medium">{foundedYear}</span>
         </div>
 
-        {/* Players */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5 text-muted-foreground">
-            <Users className="size-4" style={{ color: primaryColor }} />
-            <span className="text-xs uppercase tracking-wider font-medium text-zinc-500">Players</span>
-          </div>
-          <span className="font-display text-white font-medium">15</span>
-        </div>
 
         {/* Home Kit */}
         <div className="flex items-center justify-between">

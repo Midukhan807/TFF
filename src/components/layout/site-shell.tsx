@@ -12,7 +12,6 @@ const NAV = [
   { to: "/", label: "Home" },
   { to: "/tournaments", label: "Tournaments" },
   { to: "/teams", label: "Teams" },
-  { to: "/players", label: "Players" },
   { to: "/rankings", label: "Rankings" },
   { to: "/champions", label: "Hall of Champions" },
   { to: "/about", label: "About TFF" },
@@ -161,11 +160,6 @@ export function SiteFooter() {
             <li>
               <Link to="/teams" className="hover:text-foreground">
                 Team Database
-              </Link>
-            </li>
-            <li>
-              <Link to="/players" className="hover:text-foreground">
-                Player Database
               </Link>
             </li>
             <li>
