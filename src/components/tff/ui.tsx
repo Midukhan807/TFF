@@ -290,13 +290,21 @@ export function TournamentCard({
       className="panel group relative flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.15)] bg-zinc-950/80 border border-zinc-900 rounded-2xl"
     >
       {/* 1. Header Banner Image */}
-      <div 
-        className="relative h-80 w-full bg-cover bg-top transition-transform duration-500 group-hover:scale-105"
-        style={bannerStyle}
-      >
-        {/* Subtle bottom fade only */}
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-zinc-950 to-transparent" />
-        
+      <div className="relative w-full overflow-hidden transition-transform duration-500 group-hover:scale-105 bg-zinc-950">
+        {(tournament.banner_url || tournament.logo_url) ? (
+          <img
+            src={tournament.banner_url || tournament.logo_url}
+            alt={tournament.name}
+            className="w-full h-auto object-contain block"
+          />
+        ) : (
+          <div
+            className="h-48 w-full"
+            style={{ background: "linear-gradient(135deg, rgba(220,38,38,0.15) 0%, rgba(9,9,11,0.95) 100%)" }}
+          />
+        )}
+        {/* Subtle bottom fade */}
+        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-zinc-950 to-transparent" />
         {/* Badge in top-right */}
         <div className="absolute top-4 right-4">
           <StatusBadge status={tournament.status} />
