@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Trophy, Shield, Users, Eye, User, Shirt, Activity } from "lucide-react";
+import { Trophy, Shield, Users, Eye, User, Shirt, Activity, Calendar } from "lucide-react";
 
 import { TeamLogo } from "@/components/tff/branding";
 import { cn } from "@/lib/utils";
@@ -271,70 +271,110 @@ export function TournamentCard({
   const teamCount = propTeamCount ?? tournament.tournament_teams?.[0]?.count ?? 0;
   const matchCount = propMatchCount ?? tournament.fixtures?.[0]?.count ?? 0;
 
+  // Premium fallback background gradient if no banner is provided
+  const fallbackBg = "linear-gradient(to bottom, rgba(20, 20, 25, 0.4), rgba(10, 10, 12, 0.95))";
+  const bannerStyle = tournament.banner_url 
+    ? { backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(9,9,11,0.95)), url(${tournament.banner_url})` }
+    : tournament.logo_url
+      ? { backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(9,9,11,0.95)), url(${tournament.logo_url})` }
+      : { background: "linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(9, 9, 11, 0.95) 100%)" };
+
   return (
     <Link
       to="/tournament/$slug"
       params={{ slug: tournament.slug }}
-      className="panel group relative flex flex-col overflow-hidden p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-[var(--shadow-gold)]"
+      className="panel group relative flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.15)] bg-zinc-950/80 border border-zinc-900 rounded-2xl"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+      {/* 1. Header Banner Image */}
+      <div 
+        className="relative h-44 w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+        style={bannerStyle}
+      >
+        {/* Glow overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
+        
+        {/* Badge in top-right */}
+        <div className="absolute top-4 right-4">
+          <StatusBadge status={tournament.status} />
+        </div>
+
+        {/* Center Logo */}
+        <div className="absolute -bottom-6 left-6 flex items-end gap-4">
           {tournament.logo_url ? (
-            <img
-              src={tournament.logo_url}
-              alt={tournament.name}
-              className="size-12 rounded-xl object-contain border border-border bg-black/40 p-1"
-            />
+            <div className="size-20 rounded-2xl border border-zinc-800 bg-zinc-900/90 p-2 shadow-xl backdrop-blur flex items-center justify-center">
+              <img
+                src={tournament.logo_url}
+                alt={tournament.name}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
           ) : (
-            <span
-              className="font-display grid size-12 place-items-center rounded-xl border border-primary/40 text-sm text-primary"
-              style={{ background: "var(--gradient-surface)" }}
-            >
+            <div className="font-display size-20 rounded-2xl border border-red-500/30 bg-zinc-900/95 shadow-xl flex items-center justify-center text-red-500 font-bold text-xl">
               TFF
-            </span>
+            </div>
           )}
-          <div>
-            <p className="label-caps text-muted-foreground">{tournament.season_year || "Season"}</p>
-            <h3 className="text-2xl leading-tight group-hover:text-primary transition-colors duration-200">{tournament.name}</h3>
+        </div>
+      </div>
+
+      {/* 2. Content Section */}
+      <div className="p-6 pt-10 flex-1 flex flex-col justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase font-semibold tracking-widest text-red-500/80 bg-red-500/10 px-2.5 py-0.5 rounded-full">
+              {FORMAT_LABELS[tournament.format] ?? "League"}
+            </span>
+            <span className="text-xs text-zinc-500 font-medium">
+              Season {tournament.season_year || new Date().getFullYear()}
+            </span>
           </div>
+
+          <h3 className="mt-3 text-2xl font-bold font-display tracking-wide text-white group-hover:text-red-500 transition-colors duration-200 leading-tight">
+            {tournament.name}
+          </h3>
+
+          {tournament.description && (
+            <p className="mt-2 text-sm text-zinc-400 line-clamp-2">
+              {tournament.description}
+            </p>
+          )}
+
+          {tournament.start_date ? (
+            <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500 font-medium">
+              <Calendar className="size-3.5 text-zinc-500" />
+              <span>{formatDate(tournament.start_date)} — {formatDate(tournament.end_date)}</span>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500 italic">
+              <Calendar className="size-3.5 text-zinc-600" />
+              <span>Scheduling in progress</span>
+            </div>
+          )}
         </div>
-        <StatusBadge status={tournament.status} />
+
+        {/* 3. Stats Grid */}
+        <div className="mt-6 border-t border-zinc-900 pt-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-zinc-900/40 border border-zinc-900 rounded-xl p-3 text-center">
+              <p className="font-display text-2xl text-white font-bold">{teamCount}</p>
+              <p className="text-[0.65rem] uppercase tracking-wider font-semibold text-zinc-500 mt-0.5">Teams</p>
+            </div>
+            <div className="bg-zinc-900/40 border border-zinc-900 rounded-xl p-3 text-center">
+              <p className="font-display text-2xl text-white font-bold">{matchCount}</p>
+              <p className="text-[0.65rem] uppercase tracking-wider font-semibold text-zinc-500 mt-0.5">Matches</p>
+            </div>
+          </div>
+
+          {championName && (
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 px-4 py-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+              <Trophy className="size-5 text-yellow-500 animate-pulse" />
+              <div>
+                <p className="text-[0.6rem] uppercase tracking-wider font-bold text-yellow-500/80">Champion</p>
+                <p className="font-display font-semibold text-white leading-tight mt-0.5">{championName}</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-
-      {tournament.start_date ? (
-        <p className="mt-4 text-xs text-silver/80 font-medium">
-          {formatDate(tournament.start_date)} — {formatDate(tournament.end_date)}
-        </p>
-      ) : (
-        <p className="mt-4 text-xs text-muted-foreground italic">
-          Scheduling in progress
-        </p>
-      )}
-
-      <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border/70 pt-4 text-center">
-        <div>
-          <p className="font-display text-2xl text-foreground font-semibold">{teamCount}</p>
-          <p className="label-caps text-muted-foreground text-[0.65rem]">Teams</p>
-        </div>
-        <div>
-          <p className="font-display text-2xl text-foreground font-semibold">{matchCount}</p>
-          <p className="label-caps text-muted-foreground text-[0.65rem]">Matches</p>
-        </div>
-        <div>
-          <p className="font-display truncate text-xl text-primary font-semibold">
-            {FORMAT_LABELS[tournament.format]?.split(" ")[0] ?? "League"}
-          </p>
-          <p className="label-caps text-muted-foreground text-[0.65rem]">Format</p>
-        </div>
-      </div>
-
-      {championName && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2">
-          <Trophy className="size-4 text-primary" />
-          <span className="label-caps text-primary">Champion</span>
-          <span className="font-display ml-auto text-lg">{championName}</span>
-        </div>
-      )}
     </Link>
   );
 }

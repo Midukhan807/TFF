@@ -57,7 +57,7 @@ function AdminPage() {
   });
 
   const createTournamentMutation = useMutation({
-    mutationFn: async (newTourney: { name: string; format: string; season_year: number; points_win: number; points_draw: number; points_loss: number }) => {
+    mutationFn: async (newTourney: { name: string; format: string; season_year: number; points_win: number; points_draw: number; points_loss: number; description?: string; logo_url?: string | null }) => {
       const slug = newTourney.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
       const { data, error } = await supabase.from("tournaments").insert([{
         ...newTourney,
@@ -339,6 +339,8 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
   const [ptsWin, setPtsWin] = useState(3);
   const [ptsDraw, setPtsDraw] = useState(1);
   const [ptsLoss, setPtsLoss] = useState(0);
+  const [description, setDescription] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   // States for adding teams to a tournament
@@ -402,6 +404,29 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
     }
     setLoading(true);
     try {
+      let logoUrl = null;
+      if (logoFile) {
+        const fileExt = logoFile.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("logos")
+          .upload(filePath, logoFile);
+
+        if (uploadError) {
+          toast.error("Failed to upload tournament banner: " + uploadError.message);
+          setLoading(false);
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("logos")
+          .getPublicUrl(filePath);
+
+        logoUrl = publicUrl;
+      }
+
       await onCreate({
         name,
         format,
@@ -409,8 +434,12 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
         points_win: ptsWin,
         points_draw: ptsDraw,
         points_loss: ptsLoss,
+        description: description || null,
+        logo_url: logoUrl,
       });
       setName("");
+      setDescription("");
+      setLogoFile(null);
     } finally {
       setLoading(false);
     }
@@ -528,6 +557,19 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
               <label className="text-xs text-muted-foreground label-caps">Loss Pts</label>
               <Input type="number" value={ptsLoss} onChange={(e) => setPtsLoss(parseInt(e.target.value))} />
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground label-caps">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Provide a brief summary of the tournament..."
+              className="w-full min-h-[80px] p-3 rounded-md border border-input bg-background text-sm outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground label-caps">Tournament Banner / Cover Image</label>
+            <Input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} className="cursor-pointer" />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="animate-spin size-4 mr-2" /> : <Plus className="size-4 mr-2" />}
