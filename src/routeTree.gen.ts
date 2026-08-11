@@ -14,9 +14,11 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChampionsRouteImport } from './routes/champions'
+import { Route as PlayersRouteImport } from './routes/players'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
+import { Route as PlayersPesIdRouteImport } from './routes/players.$pesId'
 import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
 import { Route as TournamentSlugRouteImport } from './routes/tournament.$slug'
 
@@ -45,6 +47,11 @@ const ChampionsRoute = ChampionsRouteImport.update({
   path: '/champions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayersRoute = PlayersRouteImport.update({
+  id: '/players',
+  path: '/players',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RankingsRoute = RankingsRouteImport.update({
   id: '/rankings',
   path: '/rankings',
@@ -59,6 +66,11 @@ const TournamentsRoute = TournamentsRouteImport.update({
   id: '/tournaments',
   path: '/tournaments',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersPesIdRoute = PlayersPesIdRouteImport.update({
+  id: '/$pesId',
+  path: '/$pesId',
+  getParentRoute: () => PlayersRoute,
 } as any)
 const TeamTeamIdRoute = TeamTeamIdRouteImport.update({
   id: '/team/$teamId',
@@ -77,9 +89,11 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/champions': typeof ChampionsRoute
+  '/players': typeof PlayersRouteWithChildren
   '/rankings': typeof RankingsRoute
   '/teams': typeof TeamsRoute
   '/tournaments': typeof TournamentsRoute
+  '/players/$pesId': typeof PlayersPesIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
   '/tournament/$slug': typeof TournamentSlugRoute
 }
@@ -89,9 +103,11 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/champions': typeof ChampionsRoute
+  '/players': typeof PlayersRouteWithChildren
   '/rankings': typeof RankingsRoute
   '/teams': typeof TeamsRoute
   '/tournaments': typeof TournamentsRoute
+  '/players/$pesId': typeof PlayersPesIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
   '/tournament/$slug': typeof TournamentSlugRoute
 }
@@ -102,9 +118,11 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/champions': typeof ChampionsRoute
+  '/players': typeof PlayersRouteWithChildren
   '/rankings': typeof RankingsRoute
   '/teams': typeof TeamsRoute
   '/tournaments': typeof TournamentsRoute
+  '/players/$pesId': typeof PlayersPesIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
   '/tournament/$slug': typeof TournamentSlugRoute
 }
@@ -116,9 +134,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/champions'
+    | '/players'
     | '/rankings'
     | '/teams'
     | '/tournaments'
+    | '/players/$pesId'
     | '/team/$teamId'
     | '/tournament/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -128,9 +148,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/champions'
+    | '/players'
     | '/rankings'
     | '/teams'
     | '/tournaments'
+    | '/players/$pesId'
     | '/team/$teamId'
     | '/tournament/$slug'
   id:
@@ -140,9 +162,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/champions'
+    | '/players'
     | '/rankings'
     | '/teams'
     | '/tournaments'
+    | '/players/$pesId'
     | '/team/$teamId'
     | '/tournament/$slug'
   fileRoutesById: FileRoutesById
@@ -153,6 +177,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   ChampionsRoute: typeof ChampionsRoute
+  PlayersRoute: typeof PlayersRouteWithChildren
   RankingsRoute: typeof RankingsRoute
   TeamsRoute: typeof TeamsRoute
   TournamentsRoute: typeof TournamentsRoute
@@ -197,6 +222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChampionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/players': {
+      id: '/players'
+      path: '/players'
+      fullPath: '/players'
+      preLoaderRoute: typeof PlayersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rankings': {
       id: '/rankings'
       path: '/rankings'
@@ -218,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TournamentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/players/$pesId': {
+      id: '/players/$pesId'
+      path: '/$pesId'
+      fullPath: '/players/$pesId'
+      preLoaderRoute: typeof PlayersPesIdRouteImport
+      parentRoute: typeof PlayersRoute
+    }
     '/team/$teamId': {
       id: '/team/$teamId'
       path: '/team/$teamId'
@@ -235,12 +274,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface PlayersRouteChildren {
+  PlayersPesIdRoute: typeof PlayersPesIdRoute
+}
+
+const PlayersRouteChildren: PlayersRouteChildren = {
+  PlayersPesIdRoute: PlayersPesIdRoute,
+}
+
+const PlayersRouteWithChildren =
+  PlayersRoute._addFileChildren(PlayersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   ChampionsRoute: ChampionsRoute,
+  PlayersRoute: PlayersRouteWithChildren,
   RankingsRoute: RankingsRoute,
   TeamsRoute: TeamsRoute,
   TournamentsRoute: TournamentsRoute,
