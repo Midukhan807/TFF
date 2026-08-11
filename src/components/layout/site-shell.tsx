@@ -64,28 +64,17 @@ export function SiteHeader() {
             </label>
           </form>
 
-          {session ? (
-            <>
-              <Button asChild size="sm" variant="secondary">
-                <Link to="/admin">
-                  <Shield className="size-4" /> Admin
-                </Link>
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  navigate({ to: "/", replace: true });
-                }}
-                aria-label="Sign out"
-              >
-                <LogOut className="size-4" />
-              </Button>
-            </>
-          ) : (
-            <Button asChild size="sm">
-              <Link to="/auth">Admin Login</Link>
+          {session && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/", replace: true });
+              }}
+              aria-label="Sign out"
+            >
+              <LogOut className="size-4" />
             </Button>
           )}
 
@@ -178,11 +167,7 @@ export function SiteFooter() {
                 About TFF
               </Link>
             </li>
-            <li>
-              <Link to="/auth" className="hover:text-foreground">
-                Organizer Login
-              </Link>
-            </li>
+
           </ul>
         </div>
       </div>
