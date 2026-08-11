@@ -274,9 +274,9 @@ export function TournamentCard({
   // Premium fallback background gradient if no banner is provided
   const fallbackBg = "linear-gradient(to bottom, rgba(20, 20, 25, 0.4), rgba(10, 10, 12, 0.95))";
   const bannerStyle = tournament.banner_url 
-    ? { backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(9,9,11,0.95)), url(${tournament.banner_url})` }
+    ? { backgroundImage: `url(${tournament.banner_url})` }
     : tournament.logo_url
-      ? { backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(9,9,11,0.95)), url(${tournament.logo_url})` }
+      ? { backgroundImage: `url(${tournament.logo_url})` }
       : { background: "linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(9, 9, 11, 0.95) 100%)" };
 
   return (
@@ -287,37 +287,20 @@ export function TournamentCard({
     >
       {/* 1. Header Banner Image */}
       <div 
-        className="relative h-64 w-full bg-cover bg-top transition-transform duration-500 group-hover:scale-105"
+        className="relative h-64 w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
         style={bannerStyle}
       >
-        {/* Glow overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
+        {/* Subtle bottom fade only */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-zinc-950 to-transparent" />
         
         {/* Badge in top-right */}
         <div className="absolute top-4 right-4">
           <StatusBadge status={tournament.status} />
         </div>
-
-        {/* Center Logo */}
-        <div className="absolute -bottom-6 left-6 flex items-end gap-4">
-          {tournament.logo_url ? (
-            <div className="size-20 rounded-2xl border border-zinc-800 bg-zinc-900/90 p-2 shadow-xl backdrop-blur flex items-center justify-center">
-              <img
-                src={tournament.logo_url}
-                alt={tournament.name}
-                className="max-h-full max-w-full object-contain"
-              />
-            </div>
-          ) : (
-            <div className="font-display size-20 rounded-2xl border border-red-500/30 bg-zinc-900/95 shadow-xl flex items-center justify-center text-red-500 font-bold text-xl">
-              TFF
-            </div>
-          )}
-        </div>
       </div>
 
       {/* 2. Content Section */}
-      <div className="p-6 pt-10 flex-1 flex flex-col justify-between">
+      <div className="p-6 pt-6 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs uppercase font-semibold tracking-widest text-red-500/80 bg-red-500/10 px-2.5 py-0.5 rounded-full">
@@ -331,12 +314,6 @@ export function TournamentCard({
           <h3 className="mt-3 text-2xl font-bold font-display tracking-wide text-white group-hover:text-red-500 transition-colors duration-200 leading-tight">
             {tournament.name}
           </h3>
-
-          {tournament.description && (
-            <p className="mt-2 text-sm text-zinc-400 line-clamp-2">
-              {tournament.description}
-            </p>
-          )}
 
           {tournament.start_date ? (
             <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500 font-medium">

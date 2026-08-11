@@ -341,6 +341,7 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
   const [ptsLoss, setPtsLoss] = useState(0);
   const [description, setDescription] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [editingTourney, setEditingTourney] = useState<any>(null);
 
@@ -397,50 +398,34 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
     }
   }, [championsQuery.data, editingChampionsTourney]);
 
+  async function uploadFile(file: File, bucket: string): Promise<string | null> {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file);
+    if (uploadError) throw new Error(uploadError.message);
+    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
+    return publicUrl;
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!name) {
-      toast.error("Tournament name is required.");
-      return;
-    }
+    if (!name) { toast.error("Tournament name is required."); return; }
     setLoading(true);
     try {
-      let logoUrl = null;
-      if (logoFile) {
-        const fileExt = logoFile.name.split(".").pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("logos")
-          .upload(filePath, logoFile);
-
-        if (uploadError) {
-          toast.error("Failed to upload tournament banner: " + uploadError.message);
-          setLoading(false);
-          return;
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("logos")
-          .getPublicUrl(filePath);
-
-        logoUrl = publicUrl;
-      }
-
+      let logoUrl: string | null = null;
+      let bannerUrl: string | null = null;
+      if (logoFile) logoUrl = await uploadFile(logoFile, "logos");
+      if (bannerFile) bannerUrl = await uploadFile(bannerFile, "logos");
       await onCreate({
-        name,
-        format,
-        season_year: year,
-        points_win: ptsWin,
-        points_draw: ptsDraw,
-        points_loss: ptsLoss,
+        name, format, season_year: year,
+        points_win: ptsWin, points_draw: ptsDraw, points_loss: ptsLoss,
         description: description || null,
         logo_url: logoUrl,
+        banner_url: bannerUrl,
       });
-      setName("");
-      setDescription("");
-      setLogoFile(null);
+      setName(""); setDescription(""); setLogoFile(null); setBannerFile(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create tournament.");
     } finally {
       setLoading(false);
     }
@@ -500,6 +485,7 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
     setPtsLoss(0);
     setDescription("");
     setLogoFile(null);
+    setBannerFile(null);
   }
 
   async function handleDeleteTourney(tourneyId: string) {
@@ -524,17 +510,12 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
     setLoading(true);
     try {
       let logoUrl = editingTourney.logo_url;
-      if (logoFile) {
-        const fileExt = logoFile.name.split(".").pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from("logos").upload(fileName, logoFile);
-        if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from("logos").getPublicUrl(fileName);
-        logoUrl = publicUrl;
-      }
+      let bannerUrl = editingTourney.banner_url;
+      if (logoFile) logoUrl = await uploadFile(logoFile, "logos");
+      if (bannerFile) bannerUrl = await uploadFile(bannerFile, "logos");
       const { error } = await supabase.from("tournaments").update({
         name, format, season_year: year, points_win: ptsWin, points_draw: ptsDraw, points_loss: ptsLoss,
-        description: description || null, logo_url: logoUrl,
+        description: description || null, logo_url: logoUrl, banner_url: bannerUrl,
       }).eq("id", editingTourney.id);
       if (error) throw error;
       toast.success("Tournament updated!");
@@ -648,8 +629,18 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs text-muted-foreground label-caps">Tournament Banner / Cover Image</label>
+            <label className="text-xs text-muted-foreground label-caps">Poster / Cover Image <span className="text-muted-foreground/60">(shown on tournament card)</span></label>
             <Input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} className="cursor-pointer" />
+            {editingTourney?.logo_url && !logoFile && (
+              <p className="text-xs text-muted-foreground">Current: <a href={editingTourney.logo_url} target="_blank" rel="noreferrer" className="underline text-primary">view</a></p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground label-caps">Header Banner <span className="text-muted-foreground/60">(wide image shown at top of tournament page)</span></label>
+            <Input type="file" accept="image/*" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} className="cursor-pointer" />
+            {editingTourney?.banner_url && !bannerFile && (
+              <p className="text-xs text-muted-foreground">Current: <a href={editingTourney.banner_url} target="_blank" rel="noreferrer" className="underline text-primary">view</a></p>
+            )}
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="animate-spin size-4 mr-2" /> : <Plus className="size-4 mr-2" />}
