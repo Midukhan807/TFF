@@ -219,6 +219,9 @@ function Hero() {
             <Link to="/tournaments">View Tournaments</Link>
           </Button>
           <Button asChild size="lg" variant="secondary">
+            <Link to="/teams">View Teams</Link>
+          </Button>
+          <Button asChild size="lg" variant="secondary">
             <Link to="/champions">Tournament History</Link>
           </Button>
         </div>
