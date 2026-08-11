@@ -113,8 +113,8 @@ function Home() {
 
   const all = tournaments.data ?? [];
   const active = all.find((t) => t.status === "live") ?? null;
-  const upcoming = all.find((t) => t.status === "upcoming") ?? null;
-  const featuredTourney = active ?? upcoming ?? null;
+  const upcomingTourney = all.find((t) => t.status === "upcoming") ?? null;
+  const featuredTourney = active ?? upcomingTourney ?? null;
   const archive = all.filter((t) => t.status === "completed" || t.status === "archived");
 
   const teamMap = new Map((teams.data ?? []).map((t) => [t.id, t]));
