@@ -342,6 +342,7 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
   const [description, setDescription] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [editingTourney, setEditingTourney] = useState<any>(null);
 
   // States for adding teams to a tournament
   const [selectedTourney, setSelectedTourney] = useState<any>(null);
@@ -475,6 +476,78 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
     }
   }
 
+  function startEditTourney(t: any) {
+    setEditingTourney(t);
+    setName(t.name);
+    setFormat(t.format);
+    setYear(t.season_year || new Date().getFullYear());
+    setPtsWin(t.points_win ?? 3);
+    setPtsDraw(t.points_draw ?? 1);
+    setPtsLoss(t.points_loss ?? 0);
+    setDescription(t.description || "");
+    setLogoFile(null);
+    setSelectedTourney(null);
+    setEditingChampionsTourney(null);
+  }
+
+  function resetTourneyForm() {
+    setEditingTourney(null);
+    setName("");
+    setFormat("single_round_robin");
+    setYear(new Date().getFullYear());
+    setPtsWin(3);
+    setPtsDraw(1);
+    setPtsLoss(0);
+    setDescription("");
+    setLogoFile(null);
+  }
+
+  async function handleDeleteTourney(tourneyId: string) {
+    if (!confirm("Delete this tournament? This will also remove associated data.")) return;
+    try {
+      const { error } = await supabase.from("tournaments").delete().eq("id", tourneyId);
+      if (error) throw error;
+      toast.success("Tournament deleted!");
+      queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      if (editingTourney?.id === tourneyId) resetTourneyForm();
+      if (selectedTourney?.id === tourneyId) setSelectedTourney(null);
+      if (editingChampionsTourney?.id === tourneyId) setEditingChampionsTourney(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete tournament.");
+    }
+  }
+
+  async function handleUpdateTourney(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingTourney) return;
+    setLoading(true);
+    try {
+      let logoUrl = editingTourney.logo_url;
+      if (logoFile) {
+        const fileExt = logoFile.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from("logos").upload(fileName, logoFile);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from("logos").getPublicUrl(fileName);
+        logoUrl = publicUrl;
+      }
+      const { error } = await supabase.from("tournaments").update({
+        name, format, season_year: year, points_win: ptsWin, points_draw: ptsDraw, points_loss: ptsLoss,
+        description: description || null, logo_url: logoUrl,
+      }).eq("id", editingTourney.id);
+      if (error) throw error;
+      toast.success("Tournament updated!");
+      queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      resetTourneyForm();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update tournament.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function updateStatus(tourneyId: string, newStatus: string) {
     try {
       const { error } = await supabase.from("tournaments").update({ status: newStatus }).eq("id", tourneyId);
@@ -526,8 +599,15 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
       <div className="panel p-6 space-y-4 h-fit">
-        <h2 className="text-xl font-bold font-display tracking-wider">Create Tournament</h2>
-        <form onSubmit={handleCreate} className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold font-display tracking-wider">
+            {editingTourney ? "Edit Tournament" : "Create Tournament"}
+          </h2>
+          {editingTourney && (
+            <Button type="button" size="sm" variant="ghost" onClick={resetTourneyForm}>Cancel</Button>
+          )}
+        </div>
+        <form onSubmit={editingTourney ? handleUpdateTourney : handleCreate} className="space-y-4">
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground label-caps">Name</label>
             <Input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. TFF League Season 5" />
@@ -595,11 +675,17 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
                     <option value="live">Live</option>
                     <option value="completed">Completed</option>
                   </select>
-                  <Button size="sm" variant="secondary" onClick={() => { setSelectedTourney(t); setEditingChampionsTourney(null); }}>
+                  <Button size="sm" variant="secondary" onClick={() => { setSelectedTourney(t); setEditingChampionsTourney(null); setEditingTourney(null); }}>
                     Teams
                   </Button>
-                  <Button size="sm" variant="outline" className="border-primary/40 hover:bg-primary/10" onClick={() => { setEditingChampionsTourney(t); setSelectedTourney(null); }}>
+                  <Button size="sm" variant="outline" className="border-primary/40 hover:bg-primary/10" onClick={() => { setEditingChampionsTourney(t); setSelectedTourney(null); setEditingTourney(null); }}>
                     Champions
+                  </Button>
+                  <Button size="icon" variant="ghost" className="size-8" onClick={() => startEditTourney(t)} title="Edit tournament">
+                    <Edit className="size-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="size-8 hover:text-destructive" onClick={() => handleDeleteTourney(t.id)} title="Delete tournament">
+                    <Trash2 className="size-4" />
                   </Button>
                 </div>
               </div>
