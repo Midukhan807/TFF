@@ -9,16 +9,21 @@ import { fetchChampions, fetchTeams, fetchTournaments } from "@/lib/tff";
 export const Route = createFileRoute("/champions")({
   head: () => ({
     meta: [
-      { title: "Hall of Champions | TFF eFootball" },
+      { title: "Hall of Champions | Triad Football Federation (TFF) & Triad Champions League" },
       {
         name: "description",
         content:
-          "The TFF Hall of Champions — every TFF eFootball title winner, runner-up, top scorer and player of the tournament.",
+          "The Triad Football Federation (TFF) Hall of Champions — every official Triad Champions League (TCL) title winner, runner-up, top scorer and MVP player of the tournament.",
       },
-      { property: "og:title", content: "Hall of Champions | TFF eFootball" },
+      {
+        name: "keywords",
+        content:
+          "Triad Champions League winners, TFF champions, Triad Football Federation Hall of Champions, TCL champions list, eFootball champions",
+      },
+      { property: "og:title", content: "Hall of Champions | Triad Football Federation (TFF)" },
       {
         property: "og:description",
-        content: "Every champion crowned in TFF eFootball history.",
+        content: "Every champion crowned in Triad Football Federation (TFF) and Triad Champions League (TCL) history.",
       },
     ],
   }),

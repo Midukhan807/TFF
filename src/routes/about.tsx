@@ -7,16 +7,21 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About TFF | Triad Football Federation" },
+      { title: "About Triad Football Federation (TFF) | Triad Champions League" },
       {
         name: "description",
         content:
-          "TFF (Triad Football Federation) is a competitive eFootball tournament organization running structured leagues, cups and knockout finals.",
+          "Triad Football Federation (TFF) is the official eFootball tournament organization running the Triad Champions League (TCL), structured leagues, cups, standings and global team rankings.",
       },
-      { property: "og:title", content: "About TFF | Triad Football Federation" },
+      {
+        name: "keywords",
+        content:
+          "Triad Football Federation, TFF, Triad Champions League, TCL, eFootball organization, Triad Football, TFF eFootball",
+      },
+      { property: "og:title", content: "About Triad Football Federation (TFF)" },
       {
         property: "og:description",
-        content: "Who we are, how TFF tournaments work, and how to join a competition.",
+        content: "Who we are, how Triad Football Federation (TFF) competitions work, and how to participate in the Triad Champions League.",
       },
     ],
   }),

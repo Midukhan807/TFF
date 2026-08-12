@@ -22,16 +22,21 @@ import {
 export const Route = createFileRoute("/tournaments")({
   head: () => ({
     meta: [
-      { title: "TFF Tournaments | TFF eFootball" },
+      { title: "Triad Champions League (TCL) & Competitions | Triad Football Federation (TFF)" },
       {
         name: "description",
         content:
-          "Browse every TFF eFootball tournament — live competitions, upcoming events and the complete completed archive with champions.",
+          "Browse every eFootball competition organized by the Triad Football Federation (TFF), including official Triad Champions League (TCL) seasons, live matches, standings, and completed tournament archives.",
       },
-      { property: "og:title", content: "TFF Tournaments | TFF eFootball" },
+      {
+        name: "keywords",
+        content:
+          "Triad Champions League, TCL, Triad Football Federation, TFF tournaments, eFootball league, TCL Season 7, eFootball competitions",
+      },
+      { property: "og:title", content: "Triad Champions League (TCL) & Competitions | TFF" },
       {
         property: "og:description",
-        content: "Live, upcoming and completed TFF eFootball tournaments in one place.",
+        content: "Live, upcoming and completed Triad Champions League (TCL) and TFF eFootball tournaments.",
       },
     ],
   }),

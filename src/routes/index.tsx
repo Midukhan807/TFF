@@ -24,16 +24,21 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "TFF Tournament Hub | TFF eFootball" },
+      { title: "Triad Football Federation (TFF) | Triad Champions League & eFootball Hub" },
       {
         name: "description",
         content:
-          "TFF eFootball — official hub for TFF tournaments: fixtures, results, standings, teams, rankings and every champion in TFF history.",
+          "Official home of the Triad Football Federation (TFF eFootball) & Triad Champions League (TCL). Follow live eFootball tournaments, fixtures, results, standings, team power rankings and Hall of Champions.",
       },
-      { property: "og:title", content: "TFF Tournament Hub | TFF eFootball" },
+      {
+        name: "keywords",
+        content:
+          "Triad Football Federation, Triad Champions League, TFF, TFF eFootball, Triad Football, TCL, eFootball tournaments, TCL Season 7, TFF global rankings",
+      },
+      { property: "og:title", content: "Triad Football Federation (TFF) | Triad Champions League" },
       {
         property: "og:description",
-        content: "Compete. Conquer. Create History. Follow every TFF eFootball tournament.",
+        content: "Compete. Conquer. Create History. Official home of the Triad Football Federation (TFF) and Triad Champions League (TCL).",
       },
     ],
   }),

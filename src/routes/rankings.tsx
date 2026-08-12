@@ -18,16 +18,21 @@ import {
 export const Route = createFileRoute("/rankings")({
   head: () => ({
     meta: [
-      { title: "TFF Global Rankings | TFF eFootball" },
+      { title: "TFF Global Rankings | Triad Football Federation Team Power Ratings" },
       {
         name: "description",
         content:
-          "TFF global rankings — all-time team power ratings built from every TFF tournament result, title and goal.",
+          "Official Triad Football Federation (TFF) Global Rankings — all-time team power ratings built from every Triad Champions League (TCL) tournament result, title, win, and goal.",
       },
-      { property: "og:title", content: "TFF Global Rankings | TFF eFootball" },
+      {
+        name: "keywords",
+        content:
+          "TFF global rankings, Triad Football Federation rankings, Triad Champions League team ratings, TFF eFootball leaderboard",
+      },
+      { property: "og:title", content: "TFF Global Rankings | Triad Football Federation" },
       {
         property: "og:description",
-        content: "All-time TFF team rankings across every tournament ever played.",
+        content: "All-time team power ratings across every Triad Football Federation (TFF) tournament.",
       },
     ],
   }),

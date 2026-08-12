@@ -78,20 +78,36 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "TFF eFootball | Triad Football Federation" },
+      { title: "Triad Football Federation (TFF) | Triad Champions League & eFootball Hub" },
       {
         name: "description",
         content:
-          "TFF (Triad Football Federation) — competitive eFootball tournaments, fixtures, standings, champions and global rankings.",
+          "Official website of the Triad Football Federation (TFF eFootball) & Triad Champions League (TCL). Follow competitive eFootball tournaments, live fixtures, standings, team power rankings & Hall of Champions.",
       },
-      { name: "author", content: "TFF" },
-      { property: "og:title", content: "TFF eFootball | Triad Football Federation" },
+      {
+        name: "keywords",
+        content:
+          "Triad Football Federation, Triad Champions League, TFF, TFF eFootball, Triad Football, eFootball tournaments, TCL, TCL Season 7, TFF rankings, eFootball league",
+      },
+      { name: "author", content: "Triad Football Federation" },
+      { name: "robots", content: "index, follow" },
+
+      // Open Graph / Facebook
+      { property: "og:site_name", content: "Triad Football Federation (TFF)" },
+      { property: "og:type", content: "website" },
+      { property: "og:title", content: "Triad Football Federation (TFF) | Triad Champions League & eFootball Hub" },
       {
         property: "og:description",
-        content: "Compete. Conquer. Create History. Official TFF eFootball tournament hub.",
+        content: "Compete. Conquer. Create History. Official home of the Triad Football Federation (TFF) and Triad Champions League (TCL).",
       },
-      { property: "og:type", content: "website" },
+
+      // Twitter Cards
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Triad Football Federation (TFF) | Triad Champions League" },
+      {
+        name: "twitter:description",
+        content: "Official eFootball tournament hub for Triad Football Federation (TFF) and Triad Champions League (TCL).",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -101,6 +117,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SportsOrganization",
+          "name": "Triad Football Federation",
+          "alternateName": ["TFF", "TFF eFootball", "Triad Champions League", "TCL"],
+          "url": "https://tff-tournament-hub.pages.dev",
+          "description": "Official website of the Triad Football Federation (TFF eFootball) and Triad Champions League (TCL). Follow eFootball competitions, live fixtures, standings, team power rankings, and Hall of Champions.",
+          "sport": "eFootball",
+          "keywords": "Triad Football Federation, Triad Champions League, TFF, TFF eFootball, Triad Football",
+        }),
       },
     ],
   }),
