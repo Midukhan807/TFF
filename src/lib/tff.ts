@@ -284,6 +284,30 @@ export function sortStandings(rows: StandingRow[], tiebreakers: string[] = []) {
   });
 }
 
+export function getTeamFoundedYear(team: any): number {
+  if (team?.founded_year) return Number(team.founded_year);
+  if (typeof window !== "undefined" && team?.id) {
+    try {
+      const stored = localStorage.getItem("tff_founded_years");
+      if (stored) {
+        const map = JSON.parse(stored);
+        if (map[team.id]) return Number(map[team.id]);
+      }
+    } catch {}
+  }
+  return team?.created_at ? new Date(team.created_at).getFullYear() : 2026;
+}
+
+export function setTeamFoundedYear(teamId: string, year: number) {
+  if (typeof window === "undefined" || !teamId) return;
+  try {
+    const stored = localStorage.getItem("tff_founded_years");
+    const map = stored ? JSON.parse(stored) : {};
+    map[teamId] = year;
+    localStorage.setItem("tff_founded_years", JSON.stringify(map));
+  } catch {}
+}
+
 export interface TeamCareer {
   team: Team;
   tournaments: number;

@@ -17,6 +17,8 @@ import {
   fetchRankingConfig,
   fetchChampions,
   sortStandings,
+  getTeamFoundedYear,
+  setTeamFoundedYear,
   type RankingConfig,
 } from "@/lib/tff";
 
@@ -43,10 +45,20 @@ function AdminPage() {
 
   // Mutations
   const createTeamMutation = useMutation({
-    mutationFn: async (newTeam: { name: string; short_name: string; team_color: string; manager_name: string; logo_url?: string | null }) => {
-      const { data, error } = await supabase.from("teams").insert([{ ...newTeam, is_demo: false }]).select();
-      if (error) throw error;
-      return data;
+    mutationFn: async (newTeam: any) => {
+      const { founded_year, ...rest } = newTeam;
+      let res = await supabase.from("teams").insert([{ ...newTeam, is_demo: false }]).select();
+      if (res.error && res.error.message.includes("founded_year")) {
+        res = await supabase.from("teams").insert([{ ...rest, is_demo: false }]).select();
+        if (res.data?.[0]?.id && founded_year) {
+          setTeamFoundedYear(res.data[0].id, founded_year);
+        }
+      }
+      if (res.error) throw res.error;
+      if (res.data?.[0]?.id && founded_year) {
+        setTeamFoundedYear(res.data[0].id, founded_year);
+      }
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teams-admin"] });
@@ -186,7 +198,7 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
     setShortName(team.short_name);
     setColor(team.team_color);
     setManager(team.manager_name || "");
-    setFoundedYear(team.founded_year || new Date().getFullYear());
+    setFoundedYear(getTeamFoundedYear(team));
     setLogoFile(null);
   }
 
@@ -233,7 +245,8 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
       }
 
       if (editingTeam) {
-        const { error: updateError } = await supabase
+        setTeamFoundedYear(editingTeam.id, foundedYear);
+        let { error: updateError } = await supabase
           .from("teams")
           .update({
             name,
@@ -245,7 +258,22 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
           })
           .eq("id", editingTeam.id);
 
-        if (updateError) throw updateError;
+        if (updateError && updateError.message.includes("founded_year")) {
+          const { error: retryError } = await supabase
+            .from("teams")
+            .update({
+              name,
+              short_name: shortName,
+              team_color: color,
+              manager_name: manager,
+              logo_url: logoUrl,
+            })
+            .eq("id", editingTeam.id);
+          if (retryError) throw retryError;
+        } else if (updateError) {
+          throw updateError;
+        }
+
         toast.success("Team updated successfully!");
         queryClient.invalidateQueries({ queryKey: ["teams-admin"] });
         queryClient.invalidateQueries({ queryKey: ["teams"] });
