@@ -91,6 +91,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "author", content: "Triad Football Federation" },
       { name: "robots", content: "index, follow" },
+      { name: "google-site-verification", content: "googled6272ab66f432fba" },
 
       // Open Graph / Facebook
       { property: "og:site_name", content: "Triad Football Federation (TFF)" },
