@@ -32,12 +32,11 @@ function AuthPage() {
     },
   });
 
-  // Redirect safely if already authenticated
-  useEffect(() => {
-    if (session && isAdmin) {
-      navigate({ to: "/admin", replace: true });
-    }
-  }, [session, isAdmin, navigate]);
+  // Redirect if already authenticated
+  if (session && isAdmin) {
+    navigate({ to: "/admin", replace: true });
+    return null;
+  }
 
   async function onSubmit(values: any) {
     setLoading(true);

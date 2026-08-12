@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Plus, Settings, Users, Trophy, CalendarDays, Loader2, ArrowLeft, Edit, Trash2, Crown, History, BarChart3 } from "lucide-react";
+import { Plus, Settings, Users, Trophy, CalendarDays, Loader2, ArrowLeft, Edit, Trash2, Crown, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useIsAdmin } from "@/hooks/use-tff-auth";
@@ -38,15 +38,10 @@ function AdminPage() {
 
   const [activeTab, setActiveTab] = useState("tournaments");
 
-  // Inline auth state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loggingIn, setLoggingIn] = useState(false);
-
   // Queries
-  const teamsQuery = useQuery({ queryKey: ["teams-admin"], queryFn: fetchTeams, enabled: !!session && isAdmin });
-  const tournamentsQuery = useQuery({ queryKey: ["tournaments-admin"], queryFn: fetchTournaments, enabled: !!session && isAdmin });
-  const configQuery = useQuery({ queryKey: ["ranking-config"], queryFn: fetchRankingConfig, enabled: !!session && isAdmin });
+  const teamsQuery = useQuery({ queryKey: ["teams-admin"], queryFn: fetchTeams });
+  const tournamentsQuery = useQuery({ queryKey: ["tournaments-admin"], queryFn: fetchTournaments });
+  const configQuery = useQuery({ queryKey: ["ranking-config"], queryFn: fetchRankingConfig });
 
   // Mutations
   const createTeamMutation = useMutation({
@@ -111,75 +106,16 @@ function AdminPage() {
     },
   });
 
-  async function handleInlineLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoggingIn(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
-      });
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("Successfully logged in!");
-        queryClient.invalidateQueries({ queryKey: ["is-admin"] });
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to log in.");
-    } finally {
-      setLoggingIn(false);
+  useEffect(() => {
+    if (!authLoading && (!session || !isAdmin)) {
+      navigate({ to: "/auth", replace: true });
     }
-  }
+  }, [authLoading, session, isAdmin, navigate]);
 
-  if (authLoading) {
+  if (authLoading || !session || !isAdmin) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="size-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!session || !isAdmin) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md space-y-6 panel p-8 border-primary/30 shadow-2xl">
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold font-display uppercase tracking-wider text-foreground">
-              Organizer Admin Access
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Sign in with your TFF organizer account to manage tournaments, teams, standings and match schedules.
-            </p>
-          </div>
-
-          <form onSubmit={handleInlineLogin} className="space-y-4 pt-2">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground label-caps">Email Address</label>
-              <Input
-                type="email"
-                required
-                placeholder="admin@tff.com"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground label-caps">Password</label>
-              <Input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-              />
-            </div>
-            <Button type="submit" disabled={loggingIn} className="w-full h-10 font-bold uppercase tracking-wider mt-2">
-              {loggingIn && <Loader2 className="animate-spin size-4 mr-2" />}
-              Sign In to Admin Panel
-            </Button>
-          </form>
-        </div>
       </div>
     );
   }
@@ -209,8 +145,8 @@ function AdminPage() {
           <TabsTrigger value="matches" className="flex items-center gap-2">
             <CalendarDays className="size-4" /> Matches
           </TabsTrigger>
-          <TabsTrigger value="past" className="flex items-center gap-2">
-            <History className="size-4" /> Past Tournaments
+          <TabsTrigger value="standings" className="flex items-center gap-2">
+            <BarChart3 className="size-4" /> Standings
           </TabsTrigger>
           <TabsTrigger value="champions" className="flex items-center gap-2">
             <Crown className="size-4" /> Champions
@@ -232,8 +168,8 @@ function AdminPage() {
           <MatchesTabContent tournaments={tournamentsQuery.data || []} />
         </TabsContent>
 
-        <TabsContent value="past" className="space-y-6">
-          <PastTournamentsTabContent
+        <TabsContent value="standings" className="space-y-6">
+          <StandingsTabContent
             tournaments={tournamentsQuery.data || []}
             teams={teamsQuery.data || []}
           />
@@ -1304,34 +1240,19 @@ function SettingsTabContent({ config, onUpdate }: { config: any; onUpdate: any }
   );
 }
 
-/* ------------------------ PAST TOURNAMENTS TAB ------------------------ */
-function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[]; teams: any[] }) {
-  const [activeSubView, setActiveSubView] = useState<"list" | "create" | "edit_standings" | "edit_champions">("list");
+/* ---------------------------- STANDINGS TAB ----------------------------- */
+function StandingsTabContent({ tournaments, teams }: { tournaments: any[]; teams: any[] }) {
   const [selectedTourneyId, setSelectedTourneyId] = useState("");
-
-  // Create/Edit Past Tourney Form State
-  const [tourneyName, setTourneyName] = useState("");
-  const [seasonYear, setSeasonYear] = useState<number>(2024);
-  const [championTeamId, setChampionTeamId] = useState("");
-  const [runnerUpTeamId, setRunnerUpTeamId] = useState("");
-  const [thirdPlaceTeamId, setThirdPlaceTeamId] = useState("");
-  const [finalScore, setFinalScore] = useState("");
-  const [mvp, setMvp] = useState("");
-  const [topScorer, setTopScorer] = useState("");
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Standings table rows
-  const [standingsRows, setStandingsRows] = useState<any[]>([]);
+  const [showNewTourney, setShowNewTourney] = useState(false);
+  const [newTourneyName, setNewTourneyName] = useState("");
+  const [newTourneyYear, setNewTourneyYear] = useState<number>(2025);
 
   const queryClient = useQueryClient();
 
-  const championsQuery = useQuery({
-    queryKey: ["champions-admin-past"],
-    queryFn: fetchChampions,
-  });
-
   const standingsQuery = useQuery({
-    queryKey: ["standings-admin-past", selectedTourneyId],
+    queryKey: ["standings-admin", selectedTourneyId],
     queryFn: async () => {
       const { data } = await supabase.from("standings").select("*").eq("tournament_id", selectedTourneyId);
       return data ?? [];
@@ -1339,14 +1260,17 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
     enabled: !!selectedTourneyId,
   });
 
-  // Sync standings rows for edit_standings subview
+  // Sync rows when query loads or tournament selection changes
   useEffect(() => {
-    if (!selectedTourneyId || activeSubView !== "edit_standings") return;
+    if (!selectedTourneyId) {
+      setRows([]);
+      return;
+    }
     if (standingsQuery.data && standingsQuery.data.length > 0) {
       const sorted = [...standingsQuery.data].sort(
         (a, b) => b.points - a.points || b.goal_difference - a.goal_difference || b.goals_for - a.goals_for
       );
-      setStandingsRows(sorted);
+      setRows(sorted);
     } else {
       const initial = teams.map((t) => ({
         tournament_id: selectedTourneyId,
@@ -1354,26 +1278,12 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
         played: 0, wins: 0, draws: 0, losses: 0,
         goals_for: 0, goals_against: 0, goal_difference: 0, points: 0,
       }));
-      setStandingsRows(initial);
+      setRows(initial);
     }
-  }, [selectedTourneyId, standingsQuery.data, teams, activeSubView]);
+  }, [selectedTourneyId, standingsQuery.data, teams]);
 
-  // Load champions info for edit_champions subview
-  useEffect(() => {
-    if (!selectedTourneyId || activeSubView !== "edit_champions") return;
-    const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
-    if (existing) {
-      setChampionTeamId(existing.champion_team_id || "");
-      setRunnerUpTeamId(existing.runner_up_team_id || "");
-      setThirdPlaceTeamId(existing.third_place_team_id || "");
-      setFinalScore(existing.final_score || "");
-      setMvp(existing.mvp || "");
-      setTopScorer(existing.top_scorer || "");
-    }
-  }, [selectedTourneyId, championsQuery.data, activeSubView]);
-
-  function updateStandingRow(index: number, field: string, value: any) {
-    const updated = [...standingsRows];
+  function updateRowField(index: number, field: string, value: any) {
+    const updated = [...rows];
     updated[index] = { ...updated[index], [field]: value };
     if (field === "goals_for" || field === "goals_against") {
       const gf = field === "goals_for" ? Number(value) : Number(updated[index].goals_for || 0);
@@ -1385,21 +1295,71 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
       const d = field === "draws" ? Number(value) : Number(updated[index].draws || 0);
       updated[index].points = w * 3 + d * 1;
     }
-    setStandingsRows(updated);
+    setRows(updated);
   }
 
-  // Pre-fill form with TCL Season 5 data preset
-  function loadTcl5Preset() {
-    setTourneyName("TCL SEASON 5");
-    setSeasonYear(2024);
+  async function handleCreatePastTournament(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTourneyName.trim()) { toast.error("Enter tournament name."); return; }
+    setLoading(true);
+    try {
+      const slug = newTourneyName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const { data, error } = await supabase.from("tournaments").insert([{
+        name: newTourneyName.trim(),
+        slug: slug || `tcl-${Date.now()}`,
+        season_year: newTourneyYear,
+        status: "completed",
+        format: "single_round_robin",
+        points_win: 3, points_draw: 1, points_loss: 0,
+        organizer: "TFF",
+        is_demo: false,
+      }]).select().single();
 
-    const fcb = teams.find((t) => t.name.toUpperCase().includes("CHIMBAM"))?.id || "";
-    const jhr = teams.find((t) => t.name.toUpperCase().includes("JOHOR"))?.id || "";
-    const nrm = teams.find((t) => t.name.toUpperCase().includes("NIRMALA"))?.id || "";
+      if (error) throw error;
+      toast.success(`Created ${data.name}!`);
+      await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
+      await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      setSelectedTourneyId(data.id);
+      setShowNewTourney(false);
+      setNewTourneyName("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create tournament.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-    setChampionTeamId(fcb);
-    setRunnerUpTeamId(jhr);
-    setThirdPlaceTeamId(nrm);
+  async function loadTcl5Preset() {
+    let targetId = selectedTourneyId;
+    let tcl5Tourney = tournaments.find(
+      (t) => t.name.toUpperCase().includes("TCL") && t.name.includes("5")
+    );
+
+    if (!tcl5Tourney) {
+      toast.info("Creating TCL SEASON 5 tournament...");
+      const slug = "tcl-season-5";
+      const { data: created, error } = await supabase.from("tournaments").insert([{
+        name: "TCL SEASON 5",
+        slug,
+        season_year: 2024,
+        status: "completed",
+        format: "single_round_robin",
+        points_win: 3, points_draw: 1, points_loss: 0,
+        organizer: "TFF",
+        is_demo: false,
+      }]).select().single();
+
+      if (error) {
+        toast.error("Failed to create TCL 5: " + error.message);
+        return;
+      }
+      tcl5Tourney = created;
+      await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
+      await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+    }
+
+    targetId = tcl5Tourney.id;
+    setSelectedTourneyId(targetId);
 
     const tcl5Preset = [
       { name: "FC CHIMBAM", P: 9, W: 8, D: 1, L: 0, GF: 34, GA: 5, GD: 29, PTS: 25 },
@@ -1417,7 +1377,8 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
         (t) => t.name.trim().toUpperCase() === preset.name.toUpperCase()
       );
       return {
-        team_id: matchTeam?.id || "",
+        tournament_id: targetId,
+        team_id: matchTeam?.id ?? "",
         played: preset.P,
         wins: preset.W,
         draws: preset.D,
@@ -1429,56 +1390,22 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
       };
     });
 
-    setStandingsRows(presetRows);
-    setActiveSubView("create");
-    toast.success("Loaded TCL 5 Preset! Review and click 'Save Complete Tournament'.");
+    setRows(presetRows);
+    toast.success("Loaded TCL 5 Standings! Click 'Save Standings Table' below to save.");
   }
 
-  function startNewTournament() {
-    setTourneyName("");
-    setSeasonYear(2024);
-    setChampionTeamId("");
-    setRunnerUpTeamId("");
-    setThirdPlaceTeamId("");
-    setFinalScore("");
-    setMvp("");
-    setTopScorer("");
-    setStandingsRows(
-      teams.map((t) => ({
-        team_id: t.id,
-        played: 0, wins: 0, draws: 0, losses: 0,
-        goals_for: 0, goals_against: 0, goal_difference: 0, points: 0,
-      }))
-    );
-    setActiveSubView("create");
-  }
-
-  // Save complete past tournament
-  async function handleCreatePastTournament(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!tourneyName.trim()) { toast.error("Enter tournament name."); return; }
+    if (!selectedTourneyId) {
+      toast.error("Select a tournament first.");
+      return;
+    }
     setLoading(true);
-
     try {
-      const slug = tourneyName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      await supabase.from("standings").delete().eq("tournament_id", selectedTourneyId);
 
-      // 1. Insert tournament
-      const { data: tourney, error: tourneyErr } = await supabase.from("tournaments").insert([{
-        name: tourneyName.trim(),
-        slug: slug || `tcl-${Date.now()}`,
-        season_year: seasonYear,
-        status: "completed",
-        format: "single_round_robin",
-        points_win: 3, points_draw: 1, points_loss: 0,
-        organizer: "TFF",
-        is_demo: false,
-      }]).select().single();
-
-      if (tourneyErr) throw tourneyErr;
-
-      // 2. Insert Standings Rows
-      const validRows = standingsRows.filter((r) => r.team_id).map((r) => ({
-        tournament_id: tourney.id,
+      const validRows = rows.filter((r) => r.team_id).map((r) => ({
+        tournament_id: selectedTourneyId,
         team_id: r.team_id,
         played: Number(r.played) || 0,
         wins: Number(r.wins) || 0,
@@ -1491,261 +1418,122 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
       }));
 
       if (validRows.length > 0) {
-        await supabase.from("standings").insert(validRows);
+        const { error } = await supabase.from("standings").insert(validRows);
+        if (error) throw error;
       }
 
-      // Link tournament teams
       for (const r of validRows) {
         await supabase.from("tournament_teams").upsert(
-          [{ tournament_id: tourney.id, team_id: r.team_id }],
+          [{ tournament_id: selectedTourneyId, team_id: r.team_id }],
           { onConflict: "tournament_id,team_id" }
         );
       }
 
-      // 3. Insert Champions record if specified
-      if (championTeamId) {
-        await supabase.from("champions").insert([{
-          tournament_id: tourney.id,
-          champion_team_id: championTeamId,
-          runner_up_team_id: runnerUpTeamId || null,
-          third_place_team_id: thirdPlaceTeamId || null,
-          final_score: finalScore || null,
-          mvp: mvp || null,
-          top_scorer: topScorer || null,
-        }]);
-      }
-
-      toast.success(`Successfully saved ${tourney.name}!`);
-      await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
-      await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
-      await queryClient.invalidateQueries({ queryKey: ["all-standings"] });
-      await queryClient.invalidateQueries({ queryKey: ["champions"] });
-
-      setActiveSubView("list");
+      toast.success("Standings table saved successfully!");
+      queryClient.invalidateQueries({ queryKey: ["standings-admin", selectedTourneyId] });
+      queryClient.invalidateQueries({ queryKey: ["standings", selectedTourneyId] });
+      queryClient.invalidateQueries({ queryKey: ["all-standings"] });
+      queryClient.invalidateQueries({ queryKey: ["tourney-teams-admin", selectedTourneyId] });
     } catch (err: any) {
-      toast.error(err.message || "Failed to create past tournament.");
+      toast.error(err.message || "Failed to save standings.");
     } finally {
       setLoading(false);
     }
   }
 
-  // Delete past tournament
-  async function handleDeleteTourney(id: string, name: string) {
-    if (!confirm(`Are you sure you want to delete ${name}? This will remove its standings and champion records.`)) return;
-    try {
-      await supabase.from("standings").delete().eq("tournament_id", id);
-      await supabase.from("champions").delete().eq("tournament_id", id);
-      await supabase.from("tournament_teams").delete().eq("tournament_id", id);
-      const { error } = await supabase.from("tournaments").delete().eq("id", id);
-      if (error) throw error;
-
-      toast.success(`Deleted ${name}`);
-      queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
-      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
-      queryClient.invalidateQueries({ queryKey: ["all-standings"] });
-      queryClient.invalidateQueries({ queryKey: ["champions"] });
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete tournament.");
-    }
-  }
-
   return (
     <div className="space-y-6 max-w-5xl">
-      {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <History className="size-6 text-primary" />
+          <BarChart3 className="size-6 text-primary" />
           <div>
-            <h2 className="text-xl font-bold font-display tracking-wider uppercase">Past Tournaments Manager</h2>
-            <p className="text-sm text-muted-foreground">Add and manage past tournament results, points tables, and champions</p>
+            <h2 className="text-xl font-bold font-display tracking-wider">Tournament Standings Editor</h2>
+            <p className="text-sm text-muted-foreground">Directly edit or import final standings table for any tournament</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {activeSubView !== "list" ? (
-            <Button variant="ghost" size="sm" onClick={() => setActiveSubView("list")}>
-              <ArrowLeft className="size-4 mr-1.5" /> Back to Past Tournaments
-            </Button>
-          ) : (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={loadTcl5Preset}
-                className="gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
-              >
-                ⚡ Quick TCL 5 Preset
-              </Button>
-              <Button type="button" size="sm" onClick={startNewTournament} className="gap-1.5">
-                <Plus className="size-4" /> Add Past Tournament
-              </Button>
-            </>
-          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowNewTourney(!showNewTourney)}
+            className="gap-1.5"
+          >
+            <Plus className="size-4" /> Add Past Tournament
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={loadTcl5Preset}
+            className="gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+          >
+            ⚡ Load TCL 5 Standings
+          </Button>
         </div>
       </div>
 
-      {/* Subview: List of Past Tournaments */}
-      {activeSubView === "list" && (
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {tournaments.map((t) => {
-              const champRecord = championsQuery.data?.find((c) => c.tournament_id === t.id);
-              const champTeam = teams.find((tm) => tm.id === champRecord?.champion_team_id);
-              return (
-                <div key={t.id} className="panel p-5 space-y-4 relative group">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold label-caps text-primary bg-primary/10 px-2 py-0.5 rounded">
-                        Season {t.season_year || "Past"}
-                      </span>
-                      <h3 className="text-lg font-bold font-display tracking-wider mt-1">{t.name}</h3>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-destructive hover:bg-destructive/10 size-8"
-                      onClick={() => handleDeleteTourney(t.id, t.name)}
-                      title="Delete tournament"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
-                    <div className="flex items-center gap-1.5">
-                      <Crown className="size-4 text-yellow-500" />
-                      <span>Champion: <strong className="text-foreground">{champTeam?.name || "Not assigned"}</strong></span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 text-xs gap-1.5"
-                      onClick={() => {
-                        setSelectedTourneyId(t.id);
-                        setActiveSubView("edit_standings");
-                      }}
-                    >
-                      <BarChart3 className="size-3.5" /> Edit Points Table
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 text-xs gap-1.5"
-                      onClick={() => {
-                        setSelectedTourneyId(t.id);
-                        setActiveSubView("edit_champions");
-                      }}
-                    >
-                      <Crown className="size-3.5" /> Edit Champion & Honors
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {/* Quick Add Past Tournament Form */}
+      {showNewTourney && (
+        <div className="panel p-5 space-y-4 border-primary/40 bg-primary/5">
+          <h3 className="text-sm font-bold font-display tracking-wider text-primary uppercase">Create Past Tournament Record</h3>
+          <form onSubmit={handleCreatePastTournament} className="grid gap-3 sm:grid-cols-3 items-end">
+            <div className="space-y-1 sm:col-span-1">
+              <label className="text-[10px] text-muted-foreground uppercase font-semibold">Tournament Name</label>
+              <Input
+                required
+                placeholder="e.g. TCL SEASON 1"
+                value={newTourneyName}
+                onChange={(e) => setNewTourneyName(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-1">
+              <label className="text-[10px] text-muted-foreground uppercase font-semibold">Season / Year</label>
+              <input
+                type="number"
+                min={2015}
+                max={2030}
+                value={newTourneyYear}
+                onChange={(e) => setNewTourneyYear(parseInt(e.target.value) || 2025)}
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+              />
+            </div>
+            <div className="flex gap-2 sm:col-span-1">
+              <Button type="submit" size="sm" disabled={loading} className="flex-1">
+                {loading && <Loader2 className="animate-spin size-3.5 mr-1" />}
+                Add & Continue
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowNewTourney(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
         </div>
       )}
 
-      {/* Subview: Create New Past Tournament Form */}
-      {activeSubView === "create" && (
-        <form onSubmit={handleCreatePastTournament} className="space-y-6">
-          {/* Step 1: Basic Information */}
-          <div className="panel p-6 space-y-4">
-            <h3 className="text-base font-bold font-display tracking-wider text-primary uppercase">1. Tournament Details</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">Tournament Name *</label>
-                <Input
-                  required
-                  placeholder="e.g. TCL SEASON 1"
-                  value={tourneyName}
-                  onChange={(e) => setTourneyName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">Season / Year</label>
-                <input
-                  type="number"
-                  min={2015} max={2030}
-                  value={seasonYear}
-                  onChange={(e) => setSeasonYear(parseInt(e.target.value) || 2024)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
-                />
-              </div>
-            </div>
-          </div>
+      {/* Select Tournament */}
+      <div className="panel p-6 space-y-4">
+        <div className="space-y-1 max-w-md">
+          <label className="text-xs text-muted-foreground label-caps">Select Tournament</label>
+          <select
+            value={selectedTourneyId}
+            onChange={(e) => setSelectedTourneyId(e.target.value)}
+            className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
+          >
+            <option value="">— Choose Tournament —</option>
+            {tournaments.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} ({t.season_year || "Past"})
+              </option>
+            ))}
+          </select>
+        </div>
 
-          {/* Step 2: Champions & Honors */}
-          <div className="panel p-6 space-y-4">
-            <h3 className="text-base font-bold font-display tracking-wider text-primary uppercase">2. Champions & Tournament Honors</h3>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">🏆 Champion Team</label>
-                <select
-                  value={championTeamId}
-                  onChange={(e) => setChampionTeamId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
-                >
-                  <option value="">— Select Champion —</option>
-                  {teams.map((tm) => (
-                    <option key={tm.id} value={tm.id}>{tm.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">🥈 Runner-Up Team</label>
-                <select
-                  value={runnerUpTeamId}
-                  onChange={(e) => setRunnerUpTeamId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
-                >
-                  <option value="">— Select Runner-Up —</option>
-                  {teams.map((tm) => (
-                    <option key={tm.id} value={tm.id}>{tm.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">🥉 Third Place Team</label>
-                <select
-                  value={thirdPlaceTeamId}
-                  onChange={(e) => setThirdPlaceTeamId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
-                >
-                  <option value="">— Select 3rd Place —</option>
-                  {teams.map((tm) => (
-                    <option key={tm.id} value={tm.id}>{tm.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">Final Score</label>
-                <Input placeholder="e.g. 3 - 1" value={finalScore} onChange={(e) => setFinalScore(e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">Tournament MVP</label>
-                <Input placeholder="Player name" value={mvp} onChange={(e) => setMvp(e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">Top Scorer</label>
-                <Input placeholder="Player name" value={topScorer} onChange={(e) => setTopScorer(e.target.value)} />
-              </div>
-            </div>
-          </div>
-
-          {/* Step 3: Final Points Table */}
-          <div className="panel p-6 space-y-4">
-            <h3 className="text-base font-bold font-display tracking-wider text-primary uppercase">3. Final Standings Points Table</h3>
+        {selectedTourneyId && (
+          <form onSubmit={handleSave} className="space-y-4 pt-2">
             <div className="overflow-x-auto border border-border/70 rounded-lg">
               <table className="w-full text-sm">
                 <thead>
@@ -1763,60 +1551,62 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {standingsRows.map((row, idx) => (
+                  {rows.map((row, idx) => (
                     <tr key={idx} className="hover:bg-secondary/10 transition-colors">
                       <td className="px-3 py-2 text-muted-foreground font-display text-base">{idx + 1}</td>
                       <td className="px-3 py-2 font-semibold">
                         <select
                           value={row.team_id}
-                          onChange={(e) => updateStandingRow(idx, "team_id", e.target.value)}
+                          onChange={(e) => updateRowField(idx, "team_id", e.target.value)}
                           className="w-full h-8 px-2 rounded border border-input bg-background text-xs font-semibold"
                         >
                           <option value="">— Select Team —</option>
                           {teams.map((t) => (
-                            <option key={t.id} value={t.id}>{t.name}</option>
+                            <option key={t.id} value={t.id}>
+                              {t.name}
+                            </option>
                           ))}
                         </select>
                       </td>
                       <td className="px-1 py-2 text-center">
                         <input
                           type="number" min={0} value={row.played ?? 0}
-                          onChange={(e) => updateStandingRow(idx, "played", e.target.value)}
+                          onChange={(e) => updateRowField(idx, "played", e.target.value)}
                           className="w-12 h-8 text-center rounded border border-input bg-background text-xs font-semibold"
                         />
                       </td>
                       <td className="px-1 py-2 text-center">
                         <input
                           type="number" min={0} value={row.wins ?? 0}
-                          onChange={(e) => updateStandingRow(idx, "wins", e.target.value)}
+                          onChange={(e) => updateRowField(idx, "wins", e.target.value)}
                           className="w-12 h-8 text-center rounded border border-input bg-background text-xs font-semibold text-green-400"
                         />
                       </td>
                       <td className="px-1 py-2 text-center">
                         <input
                           type="number" min={0} value={row.draws ?? 0}
-                          onChange={(e) => updateStandingRow(idx, "draws", e.target.value)}
+                          onChange={(e) => updateRowField(idx, "draws", e.target.value)}
                           className="w-12 h-8 text-center rounded border border-input bg-background text-xs font-semibold text-yellow-400"
                         />
                       </td>
                       <td className="px-1 py-2 text-center">
                         <input
                           type="number" min={0} value={row.losses ?? 0}
-                          onChange={(e) => updateStandingRow(idx, "losses", e.target.value)}
+                          onChange={(e) => updateRowField(idx, "losses", e.target.value)}
                           className="w-12 h-8 text-center rounded border border-input bg-background text-xs font-semibold text-red-400"
                         />
                       </td>
                       <td className="px-1 py-2 text-center">
                         <input
                           type="number" value={row.goals_for ?? 0}
-                          onChange={(e) => updateStandingRow(idx, "goals_for", e.target.value)}
+                          onChange={(e) => updateRowField(idx, "goals_for", e.target.value)}
                           className="w-14 h-8 text-center rounded border border-input bg-background text-xs font-semibold"
                         />
                       </td>
                       <td className="px-1 py-2 text-center">
                         <input
                           type="number" value={row.goals_against ?? 0}
-                          onChange={(e) => updateStandingRow(idx, "goals_against", e.target.value)}
+                          onChange={(e) => updateRowField(idx, "goals_against", e.target.value)}
                           className="w-14 h-8 text-center rounded border border-input bg-background text-xs font-semibold"
                         />
                       </td>
@@ -1826,7 +1616,7 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
                       <td className="px-1 py-2 text-center">
                         <input
                           type="number" min={0} value={row.points ?? 0}
-                          onChange={(e) => updateStandingRow(idx, "points", e.target.value)}
+                          onChange={(e) => updateRowField(idx, "points", e.target.value)}
                           className="w-16 h-8 text-center rounded border border-primary/40 bg-primary/10 text-primary font-bold text-sm"
                         />
                       </td>
@@ -1838,11 +1628,14 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
 
             <div className="flex items-center justify-between pt-2">
               <Button
-                type="button" variant="outline" size="sm"
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() =>
-                  setStandingsRows([
-                    ...standingsRows,
+                  setRows([
+                    ...rows,
                     {
+                      tournament_id: selectedTourneyId,
                       team_id: "",
                       played: 0, wins: 0, draws: 0, losses: 0,
                       goals_for: 0, goals_against: 0, goal_difference: 0, points: 0,
@@ -1853,206 +1646,328 @@ function PastTournamentsTabContent({ tournaments, teams }: { tournaments: any[];
                 + Add Row
               </Button>
 
-              <Button type="submit" disabled={loading} size="lg" className="px-8">
+              <Button type="submit" disabled={loading} size="lg">
                 {loading && <Loader2 className="animate-spin size-4 mr-2" />}
-                Save Complete Tournament
+                Save Standings Table
               </Button>
             </div>
-          </div>
-        </form>
-      )}
-
-      {/* Subview: Edit Standings */}
-      {activeSubView === "edit_standings" && (
-        <form onSubmit={handleSaveStandings} className="panel p-6 space-y-4">
-          <h3 className="text-base font-bold font-display tracking-wider text-primary uppercase">Edit Points Table</h3>
-          <div className="overflow-x-auto border border-border/70 rounded-lg">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-secondary/40 text-xs font-semibold label-caps text-muted-foreground border-b border-border/60">
-                  <th className="px-3 py-2 text-left w-8">#</th>
-                  <th className="px-3 py-2 text-left min-w-[180px]">Team</th>
-                  <th className="px-2 py-2 text-center w-14">P</th>
-                  <th className="px-2 py-2 text-center w-14">W</th>
-                  <th className="px-2 py-2 text-center w-14">D</th>
-                  <th className="px-2 py-2 text-center w-14">L</th>
-                  <th className="px-2 py-2 text-center w-16">GF</th>
-                  <th className="px-2 py-2 text-center w-16">GA</th>
-                  <th className="px-2 py-2 text-center w-16">GD</th>
-                  <th className="px-2 py-2 text-center w-20">PTS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {standingsRows.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-secondary/10 transition-colors">
-                    <td className="px-3 py-2 text-muted-foreground font-display text-base">{idx + 1}</td>
-                    <td className="px-3 py-2 font-semibold">
-                      <select
-                        value={row.team_id}
-                        onChange={(e) => updateStandingRow(idx, "team_id", e.target.value)}
-                        className="w-full h-8 px-2 rounded border border-input bg-background text-xs font-semibold"
-                      >
-                        <option value="">— Select Team —</option>
-                        {teams.map((t) => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-1 py-2 text-center">
-                      <input
-                        type="number" min={0} value={row.played ?? 0}
-                        onChange={(e) => updateStandingRow(idx, "played", e.target.value)}
-                        className="w-12 h-8 text-center rounded border border-input bg-background text-xs font-semibold"
-                      />
-                    </td>
-                    <td className="px-1 py-2 text-center">
-                      <input
-                        type="number" min={0} value={row.wins ?? 0}
-                        onChange={(e) => updateStandingRow(idx, "wins", e.target.value)}
-                        className="w-12 h-8 text-center rounded border border-input bg-background text-xs font-semibold text-green-400"
-                      />
-                    </td>
-                    <td className="px-1 py-2 text-center">
-                      <input
-                        type="number" min={0} value={row.draws ?? 0}
-                        onChange={(e) => updateStandingRow(idx, "draws", e.target.value)}
-                        className="w-12 h-8 text-center rounded border border-input bg-background text-xs font-semibold text-yellow-400"
-                      />
-                    </td>
-                    <td className="px-1 py-2 text-center">
-                      <input
-                        type="number" min={0} value={row.losses ?? 0}
-                        onChange={(e) => updateStandingRow(idx, "losses", e.target.value)}
-                        className="w-12 h-8 text-center rounded border border-input bg-background text-xs font-semibold text-red-400"
-                      />
-                    </td>
-                    <td className="px-1 py-2 text-center">
-                      <input
-                        type="number" value={row.goals_for ?? 0}
-                        onChange={(e) => updateStandingRow(idx, "goals_for", e.target.value)}
-                        className="w-14 h-8 text-center rounded border border-input bg-background text-xs font-semibold"
-                      />
-                    </td>
-                    <td className="px-1 py-2 text-center">
-                      <input
-                        type="number" value={row.goals_against ?? 0}
-                        onChange={(e) => updateStandingRow(idx, "goals_against", e.target.value)}
-                        className="w-14 h-8 text-center rounded border border-input bg-background text-xs font-semibold"
-                      />
-                    </td>
-                    <td className="px-1 py-2 text-center font-bold text-xs">
-                      {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
-                    </td>
-                    <td className="px-1 py-2 text-center">
-                      <input
-                        type="number" min={0} value={row.points ?? 0}
-                        onChange={(e) => updateStandingRow(idx, "points", e.target.value)}
-                        className="w-16 h-8 text-center rounded border border-primary/40 bg-primary/10 text-primary font-bold text-sm"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-between pt-2">
-            <Button
-              type="button" variant="outline" size="sm"
-              onClick={() =>
-                setStandingsRows([
-                  ...standingsRows,
-                  {
-                    team_id: "",
-                    played: 0, wins: 0, draws: 0, losses: 0,
-                    goals_for: 0, goals_against: 0, goal_difference: 0, points: 0,
-                  },
-                ])
-              }
-            >
-              + Add Row
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="animate-spin size-4 mr-2" />}
-              Save Standings Table
-            </Button>
-          </div>
-        </form>
-      )}
-
-      {/* Subview: Edit Champions */}
-      {activeSubView === "edit_champions" && (
-        <form onSubmit={handleSaveChampions} className="panel p-6 space-y-4 max-w-2xl">
-          <h3 className="text-base font-bold font-display tracking-wider text-primary uppercase">Edit Champions & Honors</h3>
-
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground label-caps">🏆 Champion Team *</label>
-              <select
-                required
-                value={championTeamId}
-                onChange={(e) => setChampionTeamId(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
-              >
-                <option value="">— Select Champion —</option>
-                {teams.map((tm) => (
-                  <option key={tm.id} value={tm.id}>{tm.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground label-caps">🥈 Runner-Up Team</label>
-              <select
-                value={runnerUpTeamId}
-                onChange={(e) => setRunnerUpTeamId(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
-              >
-                <option value="">— Select Runner-Up —</option>
-                {teams.map((tm) => (
-                  <option key={tm.id} value={tm.id}>{tm.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground label-caps">🥉 Third Place Team</label>
-              <select
-                value={thirdPlaceTeamId}
-                onChange={(e) => setThirdPlaceTeamId(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
-              >
-                <option value="">— Select 3rd Place —</option>
-                {teams.map((tm) => (
-                  <option key={tm.id} value={tm.id}>{tm.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">Final Score</label>
-                <Input placeholder="e.g. 3 - 1" value={finalScore} onChange={(e) => setFinalScore(e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">Tournament MVP</label>
-                <Input placeholder="Player name" value={mvp} onChange={(e) => setMvp(e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground label-caps">Top Scorer</label>
-                <Input placeholder="Player name" value={topScorer} onChange={(e) => setTopScorer(e.target.value)} />
-              </div>
-            </div>
-
-            <Button type="submit" disabled={loading} className="w-full mt-4">
-              {loading && <Loader2 className="animate-spin size-4 mr-2" />}
-              Save Champion Record
-            </Button>
-          </div>
-        </form>
-      )}
+          </form>
+        )}
+      </div>
     </div>
   );
 }
 
+/* ---------------------------- CHAMPIONS TAB ----------------------------- */
+function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams: any[] }) {
+  const [selectedTourneyId, setSelectedTourneyId] = useState("");
+  const [championId, setChampionId] = useState("");
+  const [runnerUpId, setRunnerUpId] = useState("");
+  const [thirdPlaceId, setThirdPlaceId] = useState("");
+  const [finalScore, setFinalScore] = useState("");
+  const [mvp, setMvp] = useState("");
+  const [topScorer, setTopScorer] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Quick past tournament modal state
+  const [showNewTourney, setShowNewTourney] = useState(false);
+  const [newTourneyName, setNewTourneyName] = useState("");
+  const [newTourneyYear, setNewTourneyYear] = useState<number>(2025);
+
+  const queryClient = useQueryClient();
+
+  const championsQuery = useQuery({
+    queryKey: ["champions-admin"],
+    queryFn: fetchChampions,
+  });
+
+  const tourneyTeamsQuery = useQuery({
+    queryKey: ["tourney-teams-champions", selectedTourneyId],
+    queryFn: () => fetchTournamentTeams(selectedTourneyId),
+    enabled: !!selectedTourneyId,
+  });
+
+  // Load existing champion record when tournament changes
+  useEffect(() => {
+    if (!selectedTourneyId) return;
+    const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
+    if (existing) {
+      setChampionId(existing.champion_team_id ?? "");
+      setRunnerUpId(existing.runner_up_team_id ?? "");
+      setThirdPlaceId(existing.third_place_team_id ?? "");
+      setFinalScore(existing.final_score ?? "");
+      setMvp(existing.mvp ?? "");
+      setTopScorer(existing.top_scorer ?? "");
+    } else {
+      setChampionId(""); setRunnerUpId(""); setThirdPlaceId("");
+      setFinalScore(""); setMvp(""); setTopScorer("");
+    }
+  }, [selectedTourneyId, championsQuery.data]);
+
+  async function handleCreatePastTournament(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTourneyName.trim()) { toast.error("Enter a tournament name (e.g. TCL SEASON 1)"); return; }
+    setLoading(true);
+    try {
+      const slug = newTourneyName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const { data, error } = await supabase.from("tournaments").insert([{
+        name: newTourneyName.trim(),
+        slug: slug || `tcl-${Date.now()}`,
+        season_year: newTourneyYear,
+        status: "completed",
+        format: "single_round_robin",
+        points_win: 3, points_draw: 1, points_loss: 0,
+        organizer: "TFF",
+        is_demo: false,
+      }]).select().single();
+
+      if (error) throw error;
+      toast.success(`Created ${data.name}!`);
+      await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
+      await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      setSelectedTourneyId(data.id);
+      setShowNewTourney(false);
+      setNewTourneyName("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create tournament.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedTourneyId || !championId) {
+      toast.error("Select a tournament and a champion team.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
+      const payload = {
+        tournament_id: selectedTourneyId,
+        champion_team_id: championId || null,
+        runner_up_team_id: runnerUpId || null,
+        third_place_team_id: thirdPlaceId || null,
+        final_score: finalScore || null,
+        mvp: mvp || null,
+        top_scorer: topScorer || null,
+      };
+      if (existing) {
+        const { error } = await supabase.from("champions").update(payload).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("champions").insert([payload]);
+        if (error) throw error;
+      }
+      toast.success("Hall of Champions updated!");
+      queryClient.invalidateQueries({ queryKey: ["champions-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["champions"] });
+      queryClient.invalidateQueries({ queryKey: ["all-standings"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save champion.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!selectedTourneyId) return;
+    const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
+    if (!existing) { toast.error("No champion record to delete."); return; }
+    if (!confirm("Remove this champion record from Hall of Champions?")) return;
+    try {
+      const { error } = await supabase.from("champions").delete().eq("id", existing.id);
+      if (error) throw error;
+      toast.success("Champion record removed.");
+      setChampionId(""); setRunnerUpId(""); setThirdPlaceId("");
+      setFinalScore(""); setMvp(""); setTopScorer("");
+      queryClient.invalidateQueries({ queryKey: ["champions-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["champions"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete.");
+    }
+  }
+
+  const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
+  // Fall back to all teams if no teams registered specifically for this tournament
+  const availableTeams = (tourneyTeamsQuery.data && tourneyTeamsQuery.data.length > 0)
+    ? tourneyTeamsQuery.data
+    : teams;
+
+  const teamSelect = (label: string, value: string, setter: (v: string) => void, emoji: string) => (
+    <div className="space-y-1">
+      <label className="text-xs text-muted-foreground label-caps">{emoji} {label}</label>
+      <select
+        value={value}
+        onChange={(e) => setter(e.target.value)}
+        className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+      >
+        <option value="">— Select Team —</option>
+        {availableTeams.map((t: any) => (
+          <option key={t.id} value={t.id}>{t.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Crown className="size-6 text-primary" />
+          <div>
+            <h2 className="text-xl font-bold font-display tracking-wider">Hall of Champions</h2>
+            <p className="text-sm text-muted-foreground">Record tournament winners for the Champions page</p>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowNewTourney(!showNewTourney)}
+          className="gap-1.5"
+        >
+          <Plus className="size-4" /> Add Past Tournament
+        </Button>
+      </div>
+
+      {/* Quick Add Past Tournament Form */}
+      {showNewTourney && (
+        <div className="panel p-5 space-y-4 border-primary/40 bg-primary/5">
+          <h3 className="text-sm font-bold font-display tracking-wider text-primary uppercase">Create Past Tournament Record</h3>
+          <form onSubmit={handleCreatePastTournament} className="grid gap-3 sm:grid-cols-3 items-end">
+            <div className="space-y-1 sm:col-span-1">
+              <label className="text-[10px] text-muted-foreground uppercase font-semibold">Tournament Name</label>
+              <Input
+                required
+                placeholder="e.g. TCL SEASON 1"
+                value={newTourneyName}
+                onChange={(e) => setNewTourneyName(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-1">
+              <label className="text-[10px] text-muted-foreground uppercase font-semibold">Season / Year</label>
+              <input
+                type="number"
+                min={2015}
+                max={2030}
+                value={newTourneyYear}
+                onChange={(e) => setNewTourneyYear(parseInt(e.target.value) || 2025)}
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+              />
+            </div>
+            <div className="flex gap-2 sm:col-span-1">
+              <Button type="submit" size="sm" disabled={loading} className="flex-1">
+                {loading && <Loader2 className="animate-spin size-3.5 mr-1" />}
+                Add & Continue
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowNewTourney(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Existing champions overview */}
+      {championsQuery.data && championsQuery.data.length > 0 && (
+        <div className="panel p-4 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground label-caps">Existing Champion Records ({championsQuery.data.length})</p>
+          <div className="space-y-1">
+            {championsQuery.data.map((c) => {
+              const tourney = tournaments.find((t) => t.id === c.tournament_id);
+              const champ = teams.find((t) => t.id === c.champion_team_id);
+              return (
+                <div
+                  key={c.id}
+                  className={`flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer transition-colors ${selectedTourneyId === c.tournament_id ? "bg-primary/15 border border-primary/30" : "hover:bg-secondary/30"
+                    }`}
+                  onClick={() => setSelectedTourneyId(c.tournament_id)}
+                >
+                  <span className="font-medium">{tourney?.name ?? c.tournament_id}</span>
+                  <span className="flex items-center gap-1.5 text-primary font-semibold">
+                    <Crown className="size-3.5" />
+                    {champ?.name ?? "—"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Form */}
+      <div className="panel p-6 space-y-5">
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground label-caps">Select Tournament</label>
+          <select
+            value={selectedTourneyId}
+            onChange={(e) => setSelectedTourneyId(e.target.value)}
+            className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
+          >
+            <option value="">— Select Tournament —</option>
+            {tournaments.map((t) => (
+              <option key={t.id} value={t.id}>{t.name} ({t.season_year || "Past"})</option>
+            ))}
+          </select>
+          {existing && (
+            <p className="text-[0.75rem] text-green-400 font-medium pt-1">✓ Champion record exists — editing it</p>
+          )}
+          {selectedTourneyId && !existing && (
+            <p className="text-[0.75rem] text-muted-foreground pt-1">No champion record saved for this tournament yet — fill fields below to save</p>
+          )}
+        </div>
+
+        {selectedTourneyId && (
+          <form onSubmit={handleSave} className="space-y-4 pt-2">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {teamSelect("Champion 🏆", championId, setChampionId, "🥇")}
+              {teamSelect("Runner-Up", runnerUpId, setRunnerUpId, "🥈")}
+              {teamSelect("3rd Place", thirdPlaceId, setThirdPlaceId, "🥉")}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground label-caps">⚽ Final Score</label>
+                <Input
+                  placeholder="e.g. 2 - 1"
+                  value={finalScore}
+                  onChange={(e) => setFinalScore(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground label-caps">⭐ MVP Player</label>
+                <Input
+                  placeholder="Player name"
+                  value={mvp}
+                  onChange={(e) => setMvp(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground label-caps">🎯 Top Scorer</label>
+                <Input
+                  placeholder="Player name"
+                  value={topScorer}
+                  onChange={(e) => setTopScorer(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="animate-spin size-4 mr-2" />}
+                {existing ? "Update Champion Record" : "Save to Hall of Champions"}
+              </Button>
+              {existing && (
+                <Button type="button" variant="destructive" size="sm" onClick={handleDelete}>
+                  <Trash2 className="size-3.5 mr-1" /> Delete Record
+                </Button>
+              )}
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
 
