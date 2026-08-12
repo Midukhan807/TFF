@@ -1186,21 +1186,11 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
 
 function SettingsTabContent({ config, onUpdate }: { config: any; onUpdate: any }) {
   const [youtubeUrl, setYoutubeUrl] = useState("");
-  const [pointsChampion, setPointsChampion] = useState(100);
-  const [pointsRunnerUp, setPointsRunnerUp] = useState(70);
-  const [pointsSemiFinal, setPointsSemiFinal] = useState(50);
-  const [pointsQuarterFinal, setPointsQuarterFinal] = useState(30);
-  const [pointsParticipation, setPointsParticipation] = useState(10);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (config) {
       setYoutubeUrl(config.youtube_live_url || "");
-      setPointsChampion(config.points_champion ?? 100);
-      setPointsRunnerUp(config.points_runner_up ?? 70);
-      setPointsSemiFinal(config.points_semi_final ?? 50);
-      setPointsQuarterFinal(config.points_quarter_final ?? 30);
-      setPointsParticipation(config.points_participation ?? 10);
     }
   }, [config]);
 
@@ -1208,27 +1198,19 @@ function SettingsTabContent({ config, onUpdate }: { config: any; onUpdate: any }
     e.preventDefault();
     setLoading(true);
     try {
-      await onUpdate({
-        youtube_live_url: youtubeUrl,
-        points_champion: pointsChampion,
-        points_runner_up: pointsRunnerUp,
-        points_semi_final: pointsSemiFinal,
-        points_quarter_final: pointsQuarterFinal,
-        points_participation: pointsParticipation,
-      });
+      await onUpdate({ youtube_live_url: youtubeUrl });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="space-y-8 max-w-2xl">
-      {/* YouTube Settings */}
-      <div className="panel p-6 space-y-4">
-        <div>
-          <h2 className="text-xl font-bold font-display tracking-wider">Live Stream</h2>
-          <p className="text-sm text-muted-foreground mt-1">Configure the YouTube stream shown on the home page</p>
-        </div>
+    <div className="max-w-2xl panel p-6 space-y-6">
+      <div>
+        <h2 className="text-xl font-bold font-display tracking-wider">Global Settings</h2>
+        <p className="text-sm text-muted-foreground mt-1">Configure global streaming and tournament configurations</p>
+      </div>
+      <form onSubmit={handleSave} className="space-y-4">
         <div className="space-y-2">
           <label className="text-xs text-muted-foreground label-caps">YouTube Live Stream / Video URL</label>
           <Input
@@ -1240,42 +1222,9 @@ function SettingsTabContent({ config, onUpdate }: { config: any; onUpdate: any }
             Paste any active YouTube Live Stream link, video URL, or your channel link. The home page banner will automatically embed and link to it.
           </p>
         </div>
-      </div>
-
-      {/* Ranking Points Settings */}
-      <div className="panel p-6 space-y-4">
-        <div>
-          <h2 className="text-xl font-bold font-display tracking-wider">Ranking Points</h2>
-          <p className="text-sm text-muted-foreground mt-1">Points awarded per placement — changes apply to the global rankings immediately</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {[{label:"Champion", val:pointsChampion, set:setPointsChampion, hint:"Points for winning a tournament"},
-            {label:"Runner-Up", val:pointsRunnerUp, set:setPointsRunnerUp, hint:"Points for 2nd place"},
-            {label:"Semi-Final / 3rd", val:pointsSemiFinal, set:setPointsSemiFinal, hint:"Points for 3rd place"},
-            {label:"Quarter-Final", val:pointsQuarterFinal, set:setPointsQuarterFinal, hint:"Points for quarter-final exit"},
-            {label:"Participation", val:pointsParticipation, set:setPointsParticipation, hint:"Points just for entering"},
-          ].map(({label, val, set, hint}) => (
-            <div key={label} className="space-y-1">
-              <label className="text-xs text-muted-foreground label-caps">{label}</label>
-              <input
-                type="number" min={0} value={val}
-                onChange={(e) => set(parseInt(e.target.value) || 0)}
-                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
-              />
-              <p className="text-[0.65rem] text-zinc-500">{hint}</p>
-            </div>
-          ))}
-        </div>
-        <div className="rounded-lg bg-secondary/30 border border-border/50 p-3 text-xs text-muted-foreground">
-          <strong className="text-foreground">Preview: </strong>
-          Champion earns <strong className="text-primary">{pointsChampion}</strong> pts &middot; Runner-up earns <strong className="text-primary">{pointsRunnerUp}</strong> pts &middot; Any participant earns <strong className="text-primary">{pointsParticipation}</strong> pts per tournament
-        </div>
-      </div>
-
-      <form onSubmit={handleSave}>
-        <Button type="submit" disabled={loading} size="lg">
+        <Button type="submit" disabled={loading}>
           {loading && <Loader2 className="animate-spin size-4 mr-2" />}
-          Save All Settings
+          Save Settings
         </Button>
       </form>
     </div>
