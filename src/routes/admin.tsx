@@ -94,17 +94,18 @@ function AdminPage() {
     },
   });
 
-  if (authLoading) {
+  useEffect(() => {
+    if (!authLoading && (!session || !isAdmin)) {
+      navigate({ to: "/auth", replace: true });
+    }
+  }, [authLoading, session, isAdmin, navigate]);
+
+  if (authLoading || !session || !isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="size-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (!session || !isAdmin) {
-    navigate({ to: "/auth", replace: true });
-    return null;
   }
 
   return (
@@ -1252,3 +1253,229 @@ function SettingsTabContent({ config, onUpdate }: { config: any; onUpdate: any }
     </div>
   );
 }
+
+/* ---------------------------- CHAMPIONS TAB ----------------------------- */
+function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams: any[] }) {
+  const [selectedTourneyId, setSelectedTourneyId] = useState("");
+  const [championId, setChampionId] = useState("");
+  const [runnerUpId, setRunnerUpId] = useState("");
+  const [thirdPlaceId, setThirdPlaceId] = useState("");
+  const [finalScore, setFinalScore] = useState("");
+  const [mvp, setMvp] = useState("");
+  const [topScorer, setTopScorer] = useState("");
+  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+
+  const championsQuery = useQuery({
+    queryKey: ["champions-admin"],
+    queryFn: fetchChampions,
+  });
+
+  const tourneyTeamsQuery = useQuery({
+    queryKey: ["tourney-teams-champions", selectedTourneyId],
+    queryFn: () => fetchTournamentTeams(selectedTourneyId),
+    enabled: !!selectedTourneyId,
+  });
+
+  // Load existing champion record when tournament changes
+  useEffect(() => {
+    if (!selectedTourneyId) return;
+    const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
+    if (existing) {
+      setChampionId(existing.champion_team_id ?? "");
+      setRunnerUpId(existing.runner_up_team_id ?? "");
+      setThirdPlaceId(existing.third_place_team_id ?? "");
+      setFinalScore(existing.final_score ?? "");
+      setMvp(existing.mvp ?? "");
+      setTopScorer(existing.top_scorer ?? "");
+    } else {
+      setChampionId(""); setRunnerUpId(""); setThirdPlaceId("");
+      setFinalScore(""); setMvp(""); setTopScorer("");
+    }
+  }, [selectedTourneyId, championsQuery.data]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedTourneyId || !championId) {
+      toast.error("Select a tournament and a champion team.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
+      const payload = {
+        tournament_id: selectedTourneyId,
+        champion_team_id: championId || null,
+        runner_up_team_id: runnerUpId || null,
+        third_place_team_id: thirdPlaceId || null,
+        final_score: finalScore || null,
+        mvp: mvp || null,
+        top_scorer: topScorer || null,
+      };
+      if (existing) {
+        const { error } = await supabase.from("champions").update(payload).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("champions").insert([payload]);
+        if (error) throw error;
+      }
+      toast.success("Hall of Champions updated!");
+      queryClient.invalidateQueries({ queryKey: ["champions-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["champions"] });
+      queryClient.invalidateQueries({ queryKey: ["all-standings"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save champion.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!selectedTourneyId) return;
+    const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
+    if (!existing) { toast.error("No champion record to delete."); return; }
+    if (!confirm("Remove this champion record from Hall of Champions?")) return;
+    try {
+      const { error } = await supabase.from("champions").delete().eq("id", existing.id);
+      if (error) throw error;
+      toast.success("Champion record removed.");
+      setChampionId(""); setRunnerUpId(""); setThirdPlaceId("");
+      setFinalScore(""); setMvp(""); setTopScorer("");
+      queryClient.invalidateQueries({ queryKey: ["champions-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["champions"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete.");
+    }
+  }
+
+  const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
+  const tourneyTeams = tourneyTeamsQuery.data ?? [];
+
+  const teamSelect = (label: string, value: string, setter: (v: string) => void, emoji: string) => (
+    <div className="space-y-1">
+      <label className="text-xs text-muted-foreground label-caps">{emoji} {label}</label>
+      <select
+        value={value}
+        onChange={(e) => setter(e.target.value)}
+        className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+      >
+        <option value="">— None —</option>
+        {tourneyTeams.map((t: any) => (
+          <option key={t.id} value={t.id}>{t.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Crown className="size-6 text-primary" />
+        <div>
+          <h2 className="text-xl font-bold font-display tracking-wider">Hall of Champions</h2>
+          <p className="text-sm text-muted-foreground">Record tournament winners for the Champions page</p>
+        </div>
+      </div>
+
+      {/* Existing champions overview */}
+      {championsQuery.data && championsQuery.data.length > 0 && (
+        <div className="panel p-4 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground label-caps">Existing Records</p>
+          <div className="space-y-1">
+            {championsQuery.data.map((c) => {
+              const tourney = tournaments.find((t) => t.id === c.tournament_id);
+              const champ = teams.find((t) => t.id === c.champion_team_id);
+              return (
+                <div
+                  key={c.id}
+                  className={`flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer transition-colors ${
+                    selectedTourneyId === c.tournament_id ? "bg-primary/15 border border-primary/30" : "hover:bg-secondary/30"
+                  }`}
+                  onClick={() => setSelectedTourneyId(c.tournament_id)}
+                >
+                  <span className="font-medium">{tourney?.name ?? c.tournament_id}</span>
+                  <span className="flex items-center gap-1.5 text-primary font-semibold">
+                    <Crown className="size-3.5" />
+                    {champ?.name ?? "—"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Form */}
+      <div className="panel p-6 space-y-5">
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground label-caps">Tournament</label>
+          <select
+            value={selectedTourneyId}
+            onChange={(e) => setSelectedTourneyId(e.target.value)}
+            className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+          >
+            <option value="">— Select Tournament —</option>
+            {tournaments.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+          {existing && (
+            <p className="text-[0.7rem] text-green-400">✓ Champion record exists — editing it</p>
+          )}
+          {selectedTourneyId && !existing && (
+            <p className="text-[0.7rem] text-muted-foreground">No champion record yet — will create new</p>
+          )}
+        </div>
+
+        {selectedTourneyId && (
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {teamSelect("Champion 🏆", championId, setChampionId, "🥇")}
+              {teamSelect("Runner-Up", runnerUpId, setRunnerUpId, "🥈")}
+              {teamSelect("3rd Place", thirdPlaceId, setThirdPlaceId, "🥉")}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground label-caps">⚽ Final Score</label>
+                <Input
+                  placeholder="e.g. 2 - 1"
+                  value={finalScore}
+                  onChange={(e) => setFinalScore(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground label-caps">⭐ MVP Player</label>
+                <Input
+                  placeholder="Player name"
+                  value={mvp}
+                  onChange={(e) => setMvp(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground label-caps">🎯 Top Scorer</label>
+                <Input
+                  placeholder="Player name"
+                  value={topScorer}
+                  onChange={(e) => setTopScorer(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="animate-spin size-4 mr-2" />}
+                {existing ? "Update Champion" : "Save to Hall of Champions"}
+              </Button>
+              {existing && (
+                <Button type="button" variant="destructive" size="sm" onClick={handleDelete}>
+                  <Trash2 className="size-3.5 mr-1" /> Remove Record
+                </Button>
+              )}
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
