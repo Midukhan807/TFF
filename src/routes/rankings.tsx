@@ -51,7 +51,7 @@ function RankingsPage() {
       <SectionHeading
         eyebrow="All-Time"
         title="TFF Global Rankings"
-        subtitle={`Ranking points: ${ranking.points_champion} per title, ${ranking.points_runner_up} for a runner-up finish, ${ranking.points_participation} per tournament entered.`}
+        subtitle="All-time team power ratings built from every TFF tournament result, title and match win."
       />
 
       {careers.length ? (
