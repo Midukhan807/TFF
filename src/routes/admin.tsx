@@ -1502,10 +1502,26 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
     if (!newTourneyName.trim()) { toast.error("Enter tournament name."); return; }
     setLoading(true);
     try {
-      const slug = newTourneyName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const trimmedName = newTourneyName.trim();
+      const baseSlug = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+      // Check if tournament already exists
+      const existing = tournaments.find(
+        (t) => t.slug === baseSlug || t.name.toLowerCase() === trimmedName.toLowerCase()
+      );
+
+      if (existing) {
+        toast.info(`"${existing.name}" already exists! Selected automatically.`);
+        setSelectedTourneyId(existing.id);
+        setShowNewTourney(false);
+        setNewTourneyName("");
+        return;
+      }
+
+      const slug = baseSlug || `tcl-${Date.now()}`;
       const { data, error } = await supabase.from("tournaments").insert([{
-        name: newTourneyName.trim(),
-        slug: slug || `tcl-${Date.now()}`,
+        name: trimmedName,
+        slug,
         season_year: newTourneyYear,
         status: "completed",
         format: "single_round_robin",
@@ -1514,7 +1530,32 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
         is_demo: false,
       }]).select().single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505" || error.message.includes("unique constraint")) {
+          const uniqueSlug = `${slug}-${Date.now().toString().slice(-4)}`;
+          const { data: retryData, error: retryError } = await supabase.from("tournaments").insert([{
+            name: trimmedName,
+            slug: uniqueSlug,
+            season_year: newTourneyYear,
+            status: "completed",
+            format: "single_round_robin",
+            points_win: 3, points_draw: 1, points_loss: 0,
+            organizer: "TFF",
+            is_demo: false,
+          }]).select().single();
+
+          if (retryError) throw retryError;
+          toast.success(`Created ${retryData.name}!`);
+          await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
+          await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+          setSelectedTourneyId(retryData.id);
+          setShowNewTourney(false);
+          setNewTourneyName("");
+          return;
+        }
+        throw error;
+      }
+
       toast.success(`Created ${data.name}!`);
       await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
       await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
@@ -1919,10 +1960,26 @@ function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
     if (!newTourneyName.trim()) { toast.error("Enter a tournament name (e.g. TCL SEASON 1)"); return; }
     setLoading(true);
     try {
-      const slug = newTourneyName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const trimmedName = newTourneyName.trim();
+      const baseSlug = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+      // Check if tournament already exists
+      const existing = tournaments.find(
+        (t) => t.slug === baseSlug || t.name.toLowerCase() === trimmedName.toLowerCase()
+      );
+
+      if (existing) {
+        toast.info(`"${existing.name}" already exists! Selected automatically.`);
+        setSelectedTourneyId(existing.id);
+        setShowNewTourney(false);
+        setNewTourneyName("");
+        return;
+      }
+
+      const slug = baseSlug || `tcl-${Date.now()}`;
       const { data, error } = await supabase.from("tournaments").insert([{
-        name: newTourneyName.trim(),
-        slug: slug || `tcl-${Date.now()}`,
+        name: trimmedName,
+        slug,
         season_year: newTourneyYear,
         status: "completed",
         format: "single_round_robin",
@@ -1931,7 +1988,32 @@ function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
         is_demo: false,
       }]).select().single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505" || error.message.includes("unique constraint")) {
+          const uniqueSlug = `${slug}-${Date.now().toString().slice(-4)}`;
+          const { data: retryData, error: retryError } = await supabase.from("tournaments").insert([{
+            name: trimmedName,
+            slug: uniqueSlug,
+            season_year: newTourneyYear,
+            status: "completed",
+            format: "single_round_robin",
+            points_win: 3, points_draw: 1, points_loss: 0,
+            organizer: "TFF",
+            is_demo: false,
+          }]).select().single();
+
+          if (retryError) throw retryError;
+          toast.success(`Created ${retryData.name}!`);
+          await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
+          await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+          setSelectedTourneyId(retryData.id);
+          setShowNewTourney(false);
+          setNewTourneyName("");
+          return;
+        }
+        throw error;
+      }
+
       toast.success(`Created ${data.name}!`);
       await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
       await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
