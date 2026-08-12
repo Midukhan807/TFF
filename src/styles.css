@@ -19,7 +19,7 @@
  */
 
 @theme inline {
-  --font-display: "Bebas Neue", "Arial Narrow", sans-serif;
+  --font-display: "Rajdhani", "Arial Narrow", sans-serif;
   --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
