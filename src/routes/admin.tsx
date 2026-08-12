@@ -811,6 +811,11 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
 
+  // State for adding a fixture manually
+  const [newHomeId, setNewHomeId] = useState("");
+  const [newAwayId, setNewAwayId] = useState("");
+  const [newMatchday, setNewMatchday] = useState(1);
+
   // Generate simple schedule (Round Robin)
   async function generateSchedule() {
     if (!selectedTourneyId || !tourneyTeamsQuery.data?.length) return;
@@ -858,6 +863,41 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
       queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
     } catch (err: any) {
       toast.error(err.message || "Failed to generate schedule.");
+    }
+  }
+
+  async function addFixture() {
+    if (!newHomeId || !newAwayId) { toast.error("Select both teams."); return; }
+    if (newHomeId === newAwayId) { toast.error("Home and Away teams must be different."); return; }
+    try {
+      const { error } = await supabase.from("fixtures").insert([{
+        tournament_id: selectedTourneyId,
+        matchday: newMatchday,
+        home_team_id: newHomeId,
+        away_team_id: newAwayId,
+        stage: "league",
+        status: "scheduled",
+      }]);
+      if (error) throw error;
+      toast.success("Fixture added!");
+      setNewHomeId(""); setNewAwayId(""); setNewMatchday(1);
+      queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add fixture.");
+    }
+  }
+
+  async function deleteFixture(fixtureId: string) {
+    if (!confirm("Delete this fixture?")) return;
+    try {
+      await supabase.from("results").delete().eq("fixture_id", fixtureId);
+      const { error } = await supabase.from("fixtures").delete().eq("id", fixtureId);
+      if (error) throw error;
+      toast.success("Fixture deleted.");
+      if (selectedFixture?.id === fixtureId) setSelectedFixture(null);
+      queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete fixture.");
     }
   }
 
@@ -922,9 +962,9 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
           </select>
         </div>
 
-        {selectedTourneyId && !fixturesQuery.data?.length && (
-          <Button onClick={generateSchedule}>
-            Generate Round Robin Schedule
+        {selectedTourneyId && (
+          <Button onClick={generateSchedule} variant="outline" size="sm">
+            Auto-Generate Round Robin
           </Button>
         )}
       </div>
@@ -932,7 +972,47 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
       {selectedTourneyId && (
         <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
           <div className="space-y-4">
-            <h3 className="text-lg font-bold font-display tracking-wider">Fixtures</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold font-display tracking-wider">Fixtures</h3>
+              {fixturesQuery.data && fixturesQuery.data.length > 0 && (
+                <Button size="sm" variant="outline" onClick={generateSchedule}>Re-Generate Schedule</Button>
+              )}
+            </div>
+
+            {/* Add fixture manually */}
+            <div className="panel p-4 space-y-3 border-dashed">
+              <p className="text-xs font-semibold text-muted-foreground label-caps">Add Fixture Manually</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div>
+                  <label className="text-[10px] text-zinc-500 uppercase">Matchday</label>
+                  <input
+                    type="number" min={1} value={newMatchday}
+                    onChange={(e) => setNewMatchday(parseInt(e.target.value) || 1)}
+                    className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-500 uppercase">Home Team</label>
+                  <select value={newHomeId} onChange={(e) => setNewHomeId(e.target.value)} className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm">
+                    <option value="">-- Home --</option>
+                    {tourneyTeamsQuery.data?.map((t: any) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-500 uppercase">Away Team</label>
+                  <select value={newAwayId} onChange={(e) => setNewAwayId(e.target.value)} className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm">
+                    <option value="">-- Away --</option>
+                    {tourneyTeamsQuery.data?.map((t: any) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <Button className="w-full" size="sm" onClick={addFixture}>
+                    <Plus className="size-3.5 mr-1" /> Add
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <div className="border border-border/70 rounded-md divide-y divide-border/50 max-h-[500px] overflow-y-auto p-2 bg-secondary/10">
               {fixturesQuery.data?.map((f) => (
                 <div key={f.id} className="flex items-center justify-between py-3 px-2 text-sm">
@@ -944,23 +1024,21 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                     </span>
                     <span className="font-semibold text-left w-36">{f.away?.name || "TBD"}</span>
                   </div>
-                  <div>
+                  <div className="flex items-center gap-2">
                     <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        setSelectedFixture(f);
-                        setHomeScore(f.result?.home_score || 0);
-                        setAwayScore(f.result?.away_score || 0);
-                      }}
+                      size="sm" variant="secondary"
+                      onClick={() => { setSelectedFixture(f); setHomeScore(f.result?.home_score || 0); setAwayScore(f.result?.away_score || 0); }}
                     >
                       {f.status === "completed" ? "Edit Score" : "Record Score"}
+                    </Button>
+                    <Button size="icon" variant="ghost" className="size-8 hover:text-destructive" onClick={() => deleteFixture(f.id)}>
+                      <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 </div>
               ))}
               {!fixturesQuery.data?.length && (
-                <p className="text-xs text-muted-foreground p-4 text-center">No fixtures generated yet.</p>
+                <p className="text-xs text-muted-foreground p-4 text-center">No fixtures yet. Add manually or auto-generate above.</p>
               )}
             </div>
           </div>
