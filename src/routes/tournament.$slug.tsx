@@ -355,26 +355,67 @@ function FixtureList({ fixtures }: { fixtures: FixtureWithTeams[] }) {
   }
   const matchdays = [...new Set(fixtures.map((f) => f.matchday ?? 0))].sort((a, b) => a - b);
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {matchdays.map((matchday) => {
         const group = fixtures.filter((f) => (f.matchday ?? 0) === matchday);
         return (
-          <div key={matchday}>
-            <div className="mb-4 flex items-baseline gap-3">
-              <h2 className="text-2xl">Matchday {matchday}</h2>
-              <span className="label-caps text-muted-foreground">
-                {group[0]?.scheduled_date ? formatDate(group[0].scheduled_date) : ""}
+          <div key={matchday} className="panel overflow-hidden">
+            {/* Matchday header */}
+            <div className="bg-primary/10 border-b border-primary/20 px-5 py-3 flex items-center justify-between">
+              <h2 className="font-display text-lg tracking-widest text-primary uppercase">
+                Matchday {matchday}
+              </h2>
+              <span className="text-xs text-muted-foreground">
+                {group[0]?.scheduled_date ? formatDate(group[0].scheduled_date) : `${group.length} match${group.length !== 1 ? "es" : ""}`}
               </span>
             </div>
-            <div className="space-y-3">
-              {group.map((fixture) =>
-                fixture.result ? (
-                  <ResultCard key={fixture.id} fixture={fixture} />
-                ) : (
-                  <FixtureCard key={fixture.id} fixture={fixture} />
-                ),
-              )}
-            </div>
+            {/* Matches table */}
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-border/40">
+                {group.map((fixture) => (
+                  <tr key={fixture.id} className="hover:bg-secondary/10 transition-colors">
+                    {/* Home team */}
+                    <td className="px-5 py-3 text-right font-semibold w-[42%]">
+                      <div className="flex items-center justify-end gap-2">
+                        <span>{fixture.home?.name || "TBD"}</span>
+                        <TeamLogo
+                          name={fixture.home?.name ?? ""}
+                          shortName={(fixture.home as any)?.short_name}
+                          color={(fixture.home as any)?.team_color}
+                          logoUrl={(fixture.home as any)?.logo_url}
+                          size="sm"
+                        />
+                      </div>
+                    </td>
+                    {/* Score / VS */}
+                    <td className="px-2 py-3 text-center w-[16%]">
+                      <span className={`inline-block px-3 py-1 rounded font-bold text-sm ${
+                        fixture.status === "completed"
+                          ? "bg-green-500/15 text-green-400 border border-green-500/30"
+                          : "bg-primary/15 text-primary border border-primary/30"
+                      }`}>
+                        {fixture.status === "completed"
+                          ? `${fixture.result?.home_score} – ${fixture.result?.away_score}`
+                          : "VS"}
+                      </span>
+                    </td>
+                    {/* Away team */}
+                    <td className="px-5 py-3 text-left font-semibold w-[42%]">
+                      <div className="flex items-center gap-2">
+                        <TeamLogo
+                          name={fixture.away?.name ?? ""}
+                          shortName={(fixture.away as any)?.short_name}
+                          color={(fixture.away as any)?.team_color}
+                          logoUrl={(fixture.away as any)?.logo_url}
+                          size="sm"
+                        />
+                        <span>{fixture.away?.name || "TBD"}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         );
       })}

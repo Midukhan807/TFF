@@ -816,7 +816,8 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
   const [newAwayId, setNewAwayId] = useState("");
   const [newMatchday, setNewMatchday] = useState(1);
 
-  // Generate simple schedule (Round Robin)
+  // Generate schedule using proper circle/Berger-table round-robin
+  // Guarantees each team plays EXACTLY ONCE per matchday
   async function generateSchedule() {
     if (!selectedTourneyId || !tourneyTeamsQuery.data?.length) return;
     const teams = tourneyTeamsQuery.data;
@@ -828,38 +829,40 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
     try {
       toast.info("Generating schedule...");
       const list = [...teams];
-      const matchdayFixtures = [];
+      // If odd number of teams, add a "bye" slot
+      if (list.length % 2 !== 0) list.push(null as any);
+      const totalTeams = list.length;
+      const rounds = totalTeams - 1;
+      const matchesPerRound = totalTeams / 2;
 
-      // Simple round robin algorithm
-      const n = list.length;
-      const numMatchdays = n % 2 === 0 ? n - 1 : n;
-      const numMatchesPerDay = Math.floor((n + 1) / 2);
+      // Circle method: fix first team, rotate the rest
+      const rotation = list.slice(1);
+      const matchdayFixtures: any[] = [];
 
-      for (let day = 0; day < numMatchdays; day++) {
-        for (let match = 0; match < numMatchesPerDay; match++) {
-          const homeIdx = (day + match) % (n - 1);
-          let awayIdx = (n - 1 - match + day) % (n - 1);
-
-          if (match === 0) {
-            awayIdx = n - 1;
-          }
-
-          if (homeIdx < n && awayIdx < n && homeIdx !== awayIdx) {
+      for (let round = 0; round < rounds; round++) {
+        const current = [list[0], ...rotation];
+        for (let i = 0; i < matchesPerRound; i++) {
+          const home = current[i];
+          const away = current[totalTeams - 1 - i];
+          // Skip bye slots (null)
+          if (home && away) {
             matchdayFixtures.push({
               tournament_id: selectedTourneyId,
-              matchday: day + 1,
-              home_team_id: list[homeIdx].id,
-              away_team_id: list[awayIdx].id,
+              matchday: round + 1,
+              home_team_id: home.id,
+              away_team_id: away.id,
               stage: "league",
               status: "scheduled",
             });
           }
         }
+        // Rotate: move last element to front of rotation
+        rotation.unshift(rotation.pop()!);
       }
 
       const { error } = await supabase.from("fixtures").insert(matchdayFixtures);
       if (error) throw error;
-      toast.success("Schedule generated successfully!");
+      toast.success(`Schedule generated: ${rounds} matchdays, ${matchdayFixtures.length} fixtures!`);
       queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
     } catch (err: any) {
       toast.error(err.message || "Failed to generate schedule.");
@@ -898,6 +901,25 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
       queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
     } catch (err: any) {
       toast.error(err.message || "Failed to delete fixture.");
+    }
+  }
+
+  async function deleteAllFixtures() {
+    if (!selectedTourneyId || !fixturesQuery.data?.length) return;
+    if (!confirm(`Delete ALL ${fixturesQuery.data.length} fixtures for this tournament? This cannot be undone.`)) return;
+    try {
+      const ids = fixturesQuery.data.map((f) => f.id);
+      // Delete results first (FK constraint)
+      await supabase.from("results").delete().in("fixture_id", ids);
+      const { error } = await supabase.from("fixtures").delete().eq("tournament_id", selectedTourneyId);
+      if (error) throw error;
+      toast.success("All fixtures deleted.");
+      setSelectedFixture(null);
+      queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
+      queryClient.invalidateQueries({ queryKey: ["all-standings"] });
+      queryClient.invalidateQueries({ queryKey: ["standings"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete all fixtures.");
     }
   }
 
@@ -975,7 +997,17 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold font-display tracking-wider">Fixtures</h3>
               {fixturesQuery.data && fixturesQuery.data.length > 0 && (
-                <Button size="sm" variant="outline" onClick={generateSchedule}>Re-Generate Schedule</Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={generateSchedule}>Re-Generate</Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={deleteAllFixtures}
+                    className="gap-1"
+                  >
+                    <Trash2 className="size-3.5" /> Delete All
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -1013,31 +1045,58 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
               </div>
             </div>
 
-            <div className="border border-border/70 rounded-md divide-y divide-border/50 max-h-[500px] overflow-y-auto p-2 bg-secondary/10">
-              {fixturesQuery.data?.map((f) => (
-                <div key={f.id} className="flex items-center justify-between py-3 px-2 text-sm">
-                  <div className="w-24 text-xs text-muted-foreground font-semibold">Matchday {f.matchday}</div>
-                  <div className="flex-1 flex items-center justify-center gap-4">
-                    <span className="font-semibold text-right w-36">{f.home?.name || "TBD"}</span>
-                    <span className="bg-primary/20 px-3 py-1 rounded text-primary font-bold">
-                      {f.status === "completed" ? `${f.result?.home_score} - ${f.result?.away_score}` : "VS"}
-                    </span>
-                    <span className="font-semibold text-left w-36">{f.away?.name || "TBD"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm" variant="secondary"
-                      onClick={() => { setSelectedFixture(f); setHomeScore(f.result?.home_score || 0); setAwayScore(f.result?.away_score || 0); }}
-                    >
-                      {f.status === "completed" ? "Edit Score" : "Record Score"}
-                    </Button>
-                    <Button size="icon" variant="ghost" className="size-8 hover:text-destructive" onClick={() => deleteFixture(f.id)}>
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {!fixturesQuery.data?.length && (
+            {/* Matchday-grouped fixture tables */}
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+              {fixturesQuery.data && fixturesQuery.data.length > 0 ? (
+                [...new Set(fixturesQuery.data.map((f) => f.matchday ?? 0))]
+                  .sort((a, b) => a - b)
+                  .map((matchday) => {
+                    const group = fixturesQuery.data!.filter((f) => (f.matchday ?? 0) === matchday);
+                    return (
+                      <div key={matchday} className="border border-border/60 rounded-lg overflow-hidden">
+                        <div className="bg-secondary/30 px-4 py-2 flex items-center gap-2">
+                          <span className="font-display text-sm font-bold tracking-wider text-primary">MATCHDAY {matchday}</span>
+                          <span className="text-xs text-zinc-500">{group.length} match{group.length !== 1 ? "es" : ""}</span>
+                        </div>
+                        <table className="w-full text-sm">
+                          <tbody className="divide-y divide-border/30">
+                            {group.map((f) => (
+                              <tr key={f.id} className="hover:bg-secondary/10 transition-colors">
+                                <td className="px-4 py-2.5 text-right font-semibold w-[35%]">{f.home?.name || "TBD"}</td>
+                                <td className="px-2 py-2.5 text-center w-[12%]">
+                                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                    f.status === "completed"
+                                      ? "bg-green-500/20 text-green-400"
+                                      : "bg-primary/20 text-primary"
+                                  }`}>
+                                    {f.status === "completed"
+                                      ? `${f.result?.home_score} - ${f.result?.away_score}`
+                                      : "VS"}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2.5 text-left font-semibold w-[35%]">{f.away?.name || "TBD"}</td>
+                                <td className="px-2 py-2.5 text-right w-[18%]">
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Button
+                                      size="sm" variant="secondary"
+                                      className="h-7 text-xs px-2"
+                                      onClick={() => { setSelectedFixture(f); setHomeScore(f.result?.home_score || 0); setAwayScore(f.result?.away_score || 0); }}
+                                    >
+                                      {f.status === "completed" ? "Edit" : "Score"}
+                                    </Button>
+                                    <Button size="icon" variant="ghost" className="size-7 hover:text-destructive" onClick={() => deleteFixture(f.id)}>
+                                      <Trash2 className="size-3" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })
+              ) : (
                 <p className="text-xs text-muted-foreground p-4 text-center">No fixtures yet. Add manually or auto-generate above.</p>
               )}
             </div>
@@ -1070,11 +1129,21 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
 
 function SettingsTabContent({ config, onUpdate }: { config: any; onUpdate: any }) {
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [pointsChampion, setPointsChampion] = useState(100);
+  const [pointsRunnerUp, setPointsRunnerUp] = useState(70);
+  const [pointsSemiFinal, setPointsSemiFinal] = useState(50);
+  const [pointsQuarterFinal, setPointsQuarterFinal] = useState(30);
+  const [pointsParticipation, setPointsParticipation] = useState(10);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (config) {
       setYoutubeUrl(config.youtube_live_url || "");
+      setPointsChampion(config.points_champion ?? 100);
+      setPointsRunnerUp(config.points_runner_up ?? 70);
+      setPointsSemiFinal(config.points_semi_final ?? 50);
+      setPointsQuarterFinal(config.points_quarter_final ?? 30);
+      setPointsParticipation(config.points_participation ?? 10);
     }
   }, [config]);
 
@@ -1082,19 +1151,27 @@ function SettingsTabContent({ config, onUpdate }: { config: any; onUpdate: any }
     e.preventDefault();
     setLoading(true);
     try {
-      await onUpdate({ youtube_live_url: youtubeUrl });
+      await onUpdate({
+        youtube_live_url: youtubeUrl,
+        points_champion: pointsChampion,
+        points_runner_up: pointsRunnerUp,
+        points_semi_final: pointsSemiFinal,
+        points_quarter_final: pointsQuarterFinal,
+        points_participation: pointsParticipation,
+      });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="max-w-2xl panel p-6 space-y-6">
-      <div>
-        <h2 className="text-xl font-bold font-display tracking-wider">Global Settings</h2>
-        <p className="text-sm text-muted-foreground mt-1">Configure global streaming and tournament configurations</p>
-      </div>
-      <form onSubmit={handleSave} className="space-y-4">
+    <div className="space-y-8 max-w-2xl">
+      {/* YouTube Settings */}
+      <div className="panel p-6 space-y-4">
+        <div>
+          <h2 className="text-xl font-bold font-display tracking-wider">Live Stream</h2>
+          <p className="text-sm text-muted-foreground mt-1">Configure the YouTube stream shown on the home page</p>
+        </div>
         <div className="space-y-2">
           <label className="text-xs text-muted-foreground label-caps">YouTube Live Stream / Video URL</label>
           <Input
@@ -1106,9 +1183,42 @@ function SettingsTabContent({ config, onUpdate }: { config: any; onUpdate: any }
             Paste any active YouTube Live Stream link, video URL, or your channel link. The home page banner will automatically embed and link to it.
           </p>
         </div>
-        <Button type="submit" disabled={loading}>
+      </div>
+
+      {/* Ranking Points Settings */}
+      <div className="panel p-6 space-y-4">
+        <div>
+          <h2 className="text-xl font-bold font-display tracking-wider">Ranking Points</h2>
+          <p className="text-sm text-muted-foreground mt-1">Points awarded per placement — changes apply to the global rankings immediately</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {[{label:"Champion", val:pointsChampion, set:setPointsChampion, hint:"Points for winning a tournament"},
+            {label:"Runner-Up", val:pointsRunnerUp, set:setPointsRunnerUp, hint:"Points for 2nd place"},
+            {label:"Semi-Final / 3rd", val:pointsSemiFinal, set:setPointsSemiFinal, hint:"Points for 3rd place"},
+            {label:"Quarter-Final", val:pointsQuarterFinal, set:setPointsQuarterFinal, hint:"Points for quarter-final exit"},
+            {label:"Participation", val:pointsParticipation, set:setPointsParticipation, hint:"Points just for entering"},
+          ].map(({label, val, set, hint}) => (
+            <div key={label} className="space-y-1">
+              <label className="text-xs text-muted-foreground label-caps">{label}</label>
+              <input
+                type="number" min={0} value={val}
+                onChange={(e) => set(parseInt(e.target.value) || 0)}
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+              />
+              <p className="text-[0.65rem] text-zinc-500">{hint}</p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-lg bg-secondary/30 border border-border/50 p-3 text-xs text-muted-foreground">
+          <strong className="text-foreground">Preview: </strong>
+          Champion earns <strong className="text-primary">{pointsChampion}</strong> pts &middot; Runner-up earns <strong className="text-primary">{pointsRunnerUp}</strong> pts &middot; Any participant earns <strong className="text-primary">{pointsParticipation}</strong> pts per tournament
+        </div>
+      </div>
+
+      <form onSubmit={handleSave}>
+        <Button type="submit" disabled={loading} size="lg">
           {loading && <Loader2 className="animate-spin size-4 mr-2" />}
-          Save Settings
+          Save All Settings
         </Button>
       </form>
     </div>
