@@ -1264,6 +1264,12 @@ function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams
   const [mvp, setMvp] = useState("");
   const [topScorer, setTopScorer] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Quick past tournament modal state
+  const [showNewTourney, setShowNewTourney] = useState(false);
+  const [newTourneyName, setNewTourneyName] = useState("");
+  const [newTourneyYear, setNewTourneyYear] = useState<number>(2025);
+
   const queryClient = useQueryClient();
 
   const championsQuery = useQuery({
@@ -1293,6 +1299,37 @@ function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams
       setFinalScore(""); setMvp(""); setTopScorer("");
     }
   }, [selectedTourneyId, championsQuery.data]);
+
+  async function handleCreatePastTournament(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTourneyName.trim()) { toast.error("Enter a tournament name (e.g. TCL SEASON 1)"); return; }
+    setLoading(true);
+    try {
+      const slug = newTourneyName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const { data, error } = await supabase.from("tournaments").insert([{
+        name: newTourneyName.trim(),
+        slug: slug || `tcl-${Date.now()}`,
+        season_year: newTourneyYear,
+        status: "completed",
+        format: "single_round_robin",
+        points_win: 3, points_draw: 1, points_loss: 0,
+        organizer: "TFF",
+        is_demo: false,
+      }]).select().single();
+
+      if (error) throw error;
+      toast.success(`Created ${data.name}!`);
+      await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
+      await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      setSelectedTourneyId(data.id);
+      setShowNewTourney(false);
+      setNewTourneyName("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create tournament.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -1349,7 +1386,10 @@ function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams
   }
 
   const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
-  const tourneyTeams = tourneyTeamsQuery.data ?? [];
+  // Fall back to all teams if no teams registered specifically for this tournament
+  const availableTeams = (tourneyTeamsQuery.data && tourneyTeamsQuery.data.length > 0)
+    ? tourneyTeamsQuery.data
+    : teams;
 
   const teamSelect = (label: string, value: string, setter: (v: string) => void, emoji: string) => (
     <div className="space-y-1">
@@ -1359,8 +1399,8 @@ function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams
         onChange={(e) => setter(e.target.value)}
         className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
       >
-        <option value="">— None —</option>
-        {tourneyTeams.map((t: any) => (
+        <option value="">— Select Team —</option>
+        {availableTeams.map((t: any) => (
           <option key={t.id} value={t.id}>{t.name}</option>
         ))}
       </select>
@@ -1370,18 +1410,67 @@ function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Crown className="size-6 text-primary" />
-        <div>
-          <h2 className="text-xl font-bold font-display tracking-wider">Hall of Champions</h2>
-          <p className="text-sm text-muted-foreground">Record tournament winners for the Champions page</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Crown className="size-6 text-primary" />
+          <div>
+            <h2 className="text-xl font-bold font-display tracking-wider">Hall of Champions</h2>
+            <p className="text-sm text-muted-foreground">Record tournament winners for the Champions page</p>
+          </div>
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowNewTourney(!showNewTourney)}
+          className="gap-1.5"
+        >
+          <Plus className="size-4" /> Add Past Tournament
+        </Button>
       </div>
+
+      {/* Quick Add Past Tournament Form */}
+      {showNewTourney && (
+        <div className="panel p-5 space-y-4 border-primary/40 bg-primary/5">
+          <h3 className="text-sm font-bold font-display tracking-wider text-primary uppercase">Create Past Tournament Record</h3>
+          <form onSubmit={handleCreatePastTournament} className="grid gap-3 sm:grid-cols-3 items-end">
+            <div className="space-y-1 sm:col-span-1">
+              <label className="text-[10px] text-muted-foreground uppercase font-semibold">Tournament Name</label>
+              <Input
+                required
+                placeholder="e.g. TCL SEASON 1"
+                value={newTourneyName}
+                onChange={(e) => setNewTourneyName(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-1">
+              <label className="text-[10px] text-muted-foreground uppercase font-semibold">Season / Year</label>
+              <input
+                type="number"
+                min={2015}
+                max={2030}
+                value={newTourneyYear}
+                onChange={(e) => setNewTourneyYear(parseInt(e.target.value) || 2025)}
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+              />
+            </div>
+            <div className="flex gap-2 sm:col-span-1">
+              <Button type="submit" size="sm" disabled={loading} className="flex-1">
+                {loading && <Loader2 className="animate-spin size-3.5 mr-1" />}
+                Add & Continue
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowNewTourney(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Existing champions overview */}
       {championsQuery.data && championsQuery.data.length > 0 && (
         <div className="panel p-4 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground label-caps">Existing Records</p>
+          <p className="text-xs font-semibold text-muted-foreground label-caps">Existing Champion Records ({championsQuery.data.length})</p>
           <div className="space-y-1">
             {championsQuery.data.map((c) => {
               const tourney = tournaments.find((t) => t.id === c.tournament_id);
@@ -1409,27 +1498,27 @@ function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams
       {/* Form */}
       <div className="panel p-6 space-y-5">
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground label-caps">Tournament</label>
+          <label className="text-xs text-muted-foreground label-caps">Select Tournament</label>
           <select
             value={selectedTourneyId}
             onChange={(e) => setSelectedTourneyId(e.target.value)}
-            className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+            className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
           >
             <option value="">— Select Tournament —</option>
             {tournaments.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+              <option key={t.id} value={t.id}>{t.name} ({t.season_year || "Past"})</option>
             ))}
           </select>
           {existing && (
-            <p className="text-[0.7rem] text-green-400">✓ Champion record exists — editing it</p>
+            <p className="text-[0.75rem] text-green-400 font-medium pt-1">✓ Champion record exists — editing it</p>
           )}
           {selectedTourneyId && !existing && (
-            <p className="text-[0.7rem] text-muted-foreground">No champion record yet — will create new</p>
+            <p className="text-[0.75rem] text-muted-foreground pt-1">No champion record saved for this tournament yet — fill fields below to save</p>
           )}
         </div>
 
         {selectedTourneyId && (
-          <form onSubmit={handleSave} className="space-y-4">
+          <form onSubmit={handleSave} className="space-y-4 pt-2">
             <div className="grid gap-4 sm:grid-cols-3">
               {teamSelect("Champion 🏆", championId, setChampionId, "🥇")}
               {teamSelect("Runner-Up", runnerUpId, setRunnerUpId, "🥈")}
@@ -1464,11 +1553,11 @@ function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams
             <div className="flex items-center gap-3 pt-2">
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="animate-spin size-4 mr-2" />}
-                {existing ? "Update Champion" : "Save to Hall of Champions"}
+                {existing ? "Update Champion Record" : "Save to Hall of Champions"}
               </Button>
               {existing && (
                 <Button type="button" variant="destructive" size="sm" onClick={handleDelete}>
-                  <Trash2 className="size-3.5 mr-1" /> Remove Record
+                  <Trash2 className="size-3.5 mr-1" /> Delete Record
                 </Button>
               )}
             </div>
