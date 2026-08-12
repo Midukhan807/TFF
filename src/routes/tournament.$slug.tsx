@@ -126,25 +126,47 @@ function TournamentDetail() {
 
   return (
     <div>
-      <header className="relative overflow-hidden border-b border-border/70">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(90% 120% at 15% 0%, oklch(0.34 0.08 84 / 55%), transparent 60%), var(--gradient-surface)",
-          }}
-        />
-        <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6">
+      <header className="relative overflow-hidden border-b border-border/70 min-h-[220px] flex items-end">
+        {/* Background Banner Image */}
+        {tournament.banner_url ? (
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            <img
+              src={tournament.banner_url}
+              alt={tournament.name}
+              className="w-full h-full object-cover object-center opacity-40 blur-[1px] scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/75 to-background/30" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
+          </div>
+        ) : (
+          <div
+            className="absolute inset-0 z-0 opacity-50"
+            style={{
+              background:
+                "radial-gradient(90% 120% at 15% 0%, oklch(0.34 0.08 84 / 55%), transparent 60%), var(--gradient-surface)",
+            }}
+          />
+        )}
+
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 w-full">
           <div className="flex flex-wrap items-center gap-5">
-            <span
-              className="font-display grid size-20 place-items-center rounded-2xl border border-primary/40 text-xl text-primary"
-              style={{ background: "var(--gradient-surface)" }}
-            >
-              TFF
-            </span>
+            {tournament.logo_url ? (
+              <img
+                src={tournament.logo_url}
+                alt={tournament.name}
+                className="size-20 rounded-2xl object-contain border border-primary/40 p-2 bg-zinc-950/80 shadow-lg"
+              />
+            ) : (
+              <span
+                className="font-display grid size-20 place-items-center rounded-2xl border border-primary/40 text-xl text-primary"
+                style={{ background: "var(--gradient-surface)" }}
+              >
+                TFF
+              </span>
+            )}
             <div>
               <StatusBadge status={tournament.status} />
-              <h1 className="mt-2 text-4xl uppercase sm:text-5xl">{tournament.name}</h1>
+              <h1 className="mt-2 text-4xl uppercase font-display tracking-wider sm:text-5xl">{tournament.name}</h1>
               <p className="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <CalendarDays className="size-3.5" />
