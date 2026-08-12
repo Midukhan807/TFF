@@ -400,18 +400,36 @@ export function buildCareers(
       rankingPoints: 0,
     });
   }
+
+  const teamTournaments = new Map<string, Set<string>>();
+
   for (const row of standings) {
     const entry = map.get(row.team_id);
     if (!entry) continue;
-    entry.tournaments += 1;
-    entry.played += row.played;
-    entry.wins += row.wins;
-    entry.draws += row.draws;
-    entry.losses += row.losses;
-    entry.goalsFor += row.goals_for;
-    entry.goalsAgainst += row.goals_against;
-    entry.rankingPoints += config.points_participation;
+
+    if (!teamTournaments.has(row.team_id)) {
+      teamTournaments.set(row.team_id, new Set());
+    }
+    if (row.tournament_id) {
+      teamTournaments.get(row.team_id)!.add(row.tournament_id);
+    }
+
+    entry.played += Number(row.played) || 0;
+    entry.wins += Number(row.wins) || 0;
+    entry.draws += Number(row.draws) || 0;
+    entry.losses += Number(row.losses) || 0;
+    entry.goalsFor += Number(row.goals_for) || 0;
+    entry.goalsAgainst += Number(row.goals_against) || 0;
   }
+
+  for (const [teamId, tourneySet] of teamTournaments.entries()) {
+    const entry = map.get(teamId);
+    if (entry) {
+      entry.tournaments = tourneySet.size;
+      entry.rankingPoints += tourneySet.size * config.points_participation;
+    }
+  }
+
   for (const champ of champions) {
     const winner = champ.champion_team_id ? map.get(champ.champion_team_id) : null;
     if (winner) {
@@ -423,6 +441,7 @@ export function buildCareers(
     const third = champ.third_place_team_id ? map.get(champ.third_place_team_id) : null;
     if (third) third.rankingPoints += config.points_semi_final;
   }
+
   return [...map.values()].sort(
     (a, b) => b.rankingPoints - a.rankingPoints || b.titles - a.titles || b.wins - a.wins,
   );

@@ -174,6 +174,7 @@ function AdminPage() {
           <StandingsTabContent
             tournaments={tournamentsQuery.data || []}
             teams={teamsQuery.data || []}
+            onSelectTab={setActiveTab}
           />
         </TabsContent>
 
@@ -181,6 +182,7 @@ function AdminPage() {
           <ChampionsTabContent
             tournaments={tournamentsQuery.data || []}
             teams={teamsQuery.data || []}
+            onSelectTab={setActiveTab}
           />
         </TabsContent>
 
@@ -1243,7 +1245,7 @@ function SettingsTabContent({ config, onUpdate }: { config: any; onUpdate: any }
 }
 
 /* ---------------------------- STANDINGS TAB ----------------------------- */
-function StandingsTabContent({ tournaments, teams }: { tournaments: any[]; teams: any[] }) {
+function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments: any[]; teams: any[]; onSelectTab?: (tab: string) => void }) {
   const [selectedTourneyId, setSelectedTourneyId] = useState("");
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1678,7 +1680,7 @@ function StandingsTabContent({ tournaments, teams }: { tournaments: any[]; teams
 }
 
 /* ---------------------------- CHAMPIONS TAB ----------------------------- */
-function ChampionsTabContent({ tournaments, teams }: { tournaments: any[]; teams: any[] }) {
+function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments: any[]; teams: any[]; onSelectTab?: (tab: string) => void }) {
   const [selectedTourneyId, setSelectedTourneyId] = useState("");
   const [championId, setChampionId] = useState("");
   const [runnerUpId, setRunnerUpId] = useState("");
