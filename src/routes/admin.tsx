@@ -38,10 +38,15 @@ function AdminPage() {
 
   const [activeTab, setActiveTab] = useState("tournaments");
 
+  // Inline auth state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+
   // Queries
-  const teamsQuery = useQuery({ queryKey: ["teams-admin"], queryFn: fetchTeams });
-  const tournamentsQuery = useQuery({ queryKey: ["tournaments-admin"], queryFn: fetchTournaments });
-  const configQuery = useQuery({ queryKey: ["ranking-config"], queryFn: fetchRankingConfig });
+  const teamsQuery = useQuery({ queryKey: ["teams-admin"], queryFn: fetchTeams, enabled: !!session && isAdmin });
+  const tournamentsQuery = useQuery({ queryKey: ["tournaments-admin"], queryFn: fetchTournaments, enabled: !!session && isAdmin });
+  const configQuery = useQuery({ queryKey: ["ranking-config"], queryFn: fetchRankingConfig, enabled: !!session && isAdmin });
 
   // Mutations
   const createTeamMutation = useMutation({
@@ -106,16 +111,75 @@ function AdminPage() {
     },
   });
 
-  useEffect(() => {
-    if (!authLoading && (!session || !isAdmin)) {
-      navigate({ to: "/auth", replace: true });
+  async function handleInlineLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoggingIn(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Successfully logged in!");
+        queryClient.invalidateQueries({ queryKey: ["is-admin"] });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to log in.");
+    } finally {
+      setLoggingIn(false);
     }
-  }, [authLoading, session, isAdmin, navigate]);
+  }
 
-  if (authLoading || !session || !isAdmin) {
+  if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-[60vh] items-center justify-center bg-background">
         <Loader2 className="size-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!session || !isAdmin) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md space-y-6 panel p-8 border-primary/30 shadow-2xl">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold font-display uppercase tracking-wider text-foreground">
+              Organizer Admin Access
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Sign in with your TFF organizer account to manage tournaments, teams, standings and match schedules.
+            </p>
+          </div>
+
+          <form onSubmit={handleInlineLogin} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground label-caps">Email Address</label>
+              <Input
+                type="email"
+                required
+                placeholder="admin@tff.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground label-caps">Password</label>
+              <Input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={loggingIn} className="w-full h-10 font-bold uppercase tracking-wider mt-2">
+              {loggingIn && <Loader2 className="animate-spin size-4 mr-2" />}
+              Sign In to Admin Panel
+            </Button>
+          </form>
+        </div>
       </div>
     );
   }
