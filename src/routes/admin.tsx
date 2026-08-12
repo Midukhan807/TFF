@@ -1282,6 +1282,10 @@ function StandingsTabContent({ tournaments, teams }: { tournaments: any[]; teams
     }
   }, [selectedTourneyId, standingsQuery.data, teams]);
 
+  function deleteRow(index: number) {
+    setRows(rows.filter((_, i) => i !== index));
+  }
+
   function updateRowField(index: number, field: string, value: any) {
     const updated = [...rows];
     updated[index] = { ...updated[index], [field]: value };
@@ -1548,6 +1552,7 @@ function StandingsTabContent({ tournaments, teams }: { tournaments: any[]; teams
                     <th className="px-2 py-2 text-center w-16">GA</th>
                     <th className="px-2 py-2 text-center w-16">GD</th>
                     <th className="px-2 py-2 text-center w-20">PTS</th>
+                    <th className="px-2 py-2 text-center w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
@@ -1619,6 +1624,18 @@ function StandingsTabContent({ tournaments, teams }: { tournaments: any[]; teams
                           onChange={(e) => updateRowField(idx, "points", e.target.value)}
                           className="w-16 h-8 text-center rounded border border-primary/40 bg-primary/10 text-primary font-bold text-sm"
                         />
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteRow(idx)}
+                          className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          title="Delete row"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
