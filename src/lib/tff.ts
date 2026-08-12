@@ -19,6 +19,7 @@ export interface Team {
   logo_url: string | null;
   manager_name: string | null;
   team_color: string;
+  founded_year: number | null;
   created_at: string;
 }
 

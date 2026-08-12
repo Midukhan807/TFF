@@ -113,7 +113,7 @@ export function EmptyState({
 
 export function TeamCard({ team }: { team: Team }) {
   const primaryColor = team.team_color || "#D4A017";
-  const foundedYear = team.created_at ? new Date(team.created_at).getFullYear() : 2026;
+  const foundedYear = team.founded_year || (team.created_at ? new Date(team.created_at).getFullYear() : 2026);
 
   const borderStyle = {
     borderColor: `${primaryColor}44`,

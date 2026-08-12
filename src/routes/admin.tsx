@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Plus, Settings, Users, Trophy, CalendarDays, Loader2, ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { Plus, Settings, Users, Trophy, CalendarDays, Loader2, ArrowLeft, Edit, Trash2, Crown } from "lucide-react";
 import { toast } from "sonner";
 
 import { useIsAdmin } from "@/hooks/use-tff-auth";
@@ -15,6 +15,8 @@ import {
   fetchFixtures,
   fetchTournamentTeams,
   fetchRankingConfig,
+  fetchChampions,
+  sortStandings,
   type RankingConfig,
 } from "@/lib/tff";
 
@@ -120,7 +122,7 @@ function AdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-4 max-w-lg">
+        <TabsList className="grid grid-cols-5 max-w-2xl">
           <TabsTrigger value="tournaments" className="flex items-center gap-2">
             <Trophy className="size-4" /> Tournaments
           </TabsTrigger>
@@ -129,6 +131,9 @@ function AdminPage() {
           </TabsTrigger>
           <TabsTrigger value="matches" className="flex items-center gap-2">
             <CalendarDays className="size-4" /> Matches
+          </TabsTrigger>
+          <TabsTrigger value="champions" className="flex items-center gap-2">
+            <Crown className="size-4" /> Champions
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="size-4" /> Settings
@@ -147,6 +152,13 @@ function AdminPage() {
           <MatchesTabContent tournaments={tournamentsQuery.data || []} />
         </TabsContent>
 
+        <TabsContent value="champions" className="space-y-6">
+          <ChampionsTabContent
+            tournaments={tournamentsQuery.data || []}
+            teams={teamsQuery.data || []}
+          />
+        </TabsContent>
+
         <TabsContent value="settings" className="space-y-6">
           <SettingsTabContent config={configQuery.data} onUpdate={updateConfigMutation.mutateAsync} />
         </TabsContent>
@@ -161,6 +173,7 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
   const [shortName, setShortName] = useState("");
   const [color, setColor] = useState("#D4A017");
   const [manager, setManager] = useState("");
+  const [foundedYear, setFoundedYear] = useState<number>(new Date().getFullYear());
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
@@ -172,6 +185,7 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
     setShortName(team.short_name);
     setColor(team.team_color);
     setManager(team.manager_name || "");
+    setFoundedYear(team.founded_year || new Date().getFullYear());
     setLogoFile(null);
   }
 
@@ -182,6 +196,7 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
     setShortName("");
     setColor("#D4A017");
     setManager("");
+    setFoundedYear(new Date().getFullYear());
     setLogoFile(null);
   }
 
@@ -225,6 +240,7 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
             team_color: color,
             manager_name: manager,
             logo_url: logoUrl,
+            founded_year: foundedYear,
           })
           .eq("id", editingTeam.id);
 
@@ -233,7 +249,7 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
         queryClient.invalidateQueries({ queryKey: ["teams-admin"] });
         queryClient.invalidateQueries({ queryKey: ["teams"] });
       } else {
-        await onCreate({ name, short_name: shortName, team_color: color, manager_name: manager, logo_url: logoUrl });
+        await onCreate({ name, short_name: shortName, team_color: color, manager_name: manager, logo_url: logoUrl, founded_year: foundedYear });
       }
       resetForm();
     } catch (err: any) {
@@ -281,6 +297,18 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground label-caps">Manager Name</label>
             <Input value={manager} onChange={(e) => setManager(e.target.value)} placeholder="e.g. Sir Alex" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground label-caps">Founded Year</label>
+            <input
+              type="number"
+              min={1900}
+              max={new Date().getFullYear()}
+              value={foundedYear}
+              onChange={(e) => setFoundedYear(parseInt(e.target.value) || new Date().getFullYear())}
+              className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+              placeholder="e.g. 2020"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground label-caps">
