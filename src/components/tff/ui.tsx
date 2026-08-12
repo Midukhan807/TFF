@@ -278,7 +278,7 @@ export function TournamentCard({
 
   // Premium fallback background gradient if no banner is provided
   const fallbackBg = "linear-gradient(to bottom, rgba(20, 20, 25, 0.4), rgba(10, 10, 12, 0.95))";
-  const bannerStyle = tournament.banner_url 
+  const bannerStyle = tournament.banner_url
     ? { backgroundImage: `url(${tournament.banner_url})` }
     : tournament.logo_url
       ? { backgroundImage: `url(${tournament.logo_url})` }
@@ -290,25 +290,24 @@ export function TournamentCard({
       params={{ slug: tournament.slug }}
       className="panel group relative flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.15)] bg-zinc-950/80 border border-zinc-900 rounded-2xl"
     >
-      {/* 1. Header Logo Section */}
-      <div className="relative w-full h-40 overflow-hidden bg-zinc-950 flex items-center justify-center p-4 border-b border-zinc-900/80">
-        <div
-          className="absolute inset-0 opacity-40 group-hover:opacity-60 transition-opacity duration-500"
-          style={{ background: "linear-gradient(135deg, rgba(220,38,38,0.2) 0%, rgba(9,9,11,0.95) 100%)" }}
-        />
-        {tournament.logo_url ? (
+      {/* 1. Header Banner Image */}
+      <div className="relative w-full overflow-hidden transition-transform duration-500 group-hover:scale-105 bg-zinc-950">
+        {(tournament.banner_url || tournament.logo_url) ? (
           <img
-            src={tournament.logo_url}
+            src={tournament.banner_url || tournament.logo_url}
             alt={tournament.name}
-            className="relative z-10 max-h-28 max-w-[85%] object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)] group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-auto object-contain block"
           />
         ) : (
-          <div className="relative z-10 font-display text-3xl font-bold tracking-widest text-primary/80 group-hover:text-primary transition-colors uppercase text-center px-4">
-            {tournament.name}
-          </div>
+          <div
+            className="h-48 w-full"
+            style={{ background: "linear-gradient(135deg, rgba(220,38,38,0.15) 0%, rgba(9,9,11,0.95) 100%)" }}
+          />
         )}
+        {/* Subtle bottom fade */}
+        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-zinc-950 to-transparent" />
         {/* Badge in top-right */}
-        <div className="absolute top-3 right-3 z-20">
+        <div className="absolute top-4 right-4">
           <StatusBadge status={tournament.status} />
         </div>
       </div>
