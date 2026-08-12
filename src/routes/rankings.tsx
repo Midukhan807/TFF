@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Crown } from "lucide-react";
+import { Crown, Filter } from "lucide-react";
+import { useState } from "react";
 
 import { TeamLogo } from "@/components/tff/branding";
 import { EmptyState, SectionHeading } from "@/components/tff/ui";
@@ -11,6 +12,7 @@ import {
   fetchChampions,
   fetchRankingConfig,
   fetchTeams,
+  fetchTournaments,
 } from "@/lib/tff";
 
 export const Route = createFileRoute("/rankings")({
@@ -33,26 +35,80 @@ export const Route = createFileRoute("/rankings")({
 });
 
 function RankingsPage() {
+  const [selectedTourneyId, setSelectedTourneyId] = useState<string>("all");
+
+  const tournaments = useQuery({ queryKey: ["tournaments"], queryFn: fetchTournaments });
   const teams = useQuery({ queryKey: ["teams"], queryFn: fetchTeams });
   const standings = useQuery({ queryKey: ["all-standings"], queryFn: fetchAllStandings });
   const champions = useQuery({ queryKey: ["champions"], queryFn: fetchChampions });
   const config = useQuery({ queryKey: ["ranking-config"], queryFn: fetchRankingConfig });
 
   const ranking = config.data ?? DEFAULT_RANKING;
-  const careers = buildCareers(
+
+  // Filter standings and champions by selected tournament if not "all"
+  const filteredStandings = (standings.data ?? []).filter((s) =>
+    selectedTourneyId === "all" ? true : s.tournament_id === selectedTourneyId,
+  );
+  const filteredChampions = (champions.data ?? []).filter((c) =>
+    selectedTourneyId === "all" ? true : c.tournament_id === selectedTourneyId,
+  );
+
+  let careers = buildCareers(
     teams.data ?? [],
-    standings.data ?? [],
-    champions.data ?? [],
+    filteredStandings,
+    filteredChampions,
     ranking,
   );
 
+  // If a specific tournament is selected, only show teams that participated (or all if 0)
+  if (selectedTourneyId !== "all") {
+    const activeCareers = careers.filter((c) => c.played > 0 || c.tournaments > 0);
+    if (activeCareers.length > 0) {
+      careers = activeCareers;
+    }
+  }
+
+  const selectedTourneyName =
+    selectedTourneyId === "all"
+      ? "All-Time"
+      : tournaments.data?.find((t) => t.id === selectedTourneyId)?.name ?? "Selected Tournament";
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-      <SectionHeading
-        eyebrow="All-Time"
-        title="TFF Global Rankings"
-        subtitle="All-time team power ratings built from every TFF tournament result, title and match win."
-      />
+    <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 space-y-8">
+      {/* Header and Filter */}
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between border-b border-border/70 pb-6">
+        <div>
+          <p className="label-caps text-xs text-primary mb-1">
+            {selectedTourneyId === "all" ? "All-Time" : "Tournament Filter"}
+          </p>
+          <h1 className="font-display text-4xl sm:text-5xl tracking-wide uppercase">
+            {selectedTourneyId === "all" ? "TFF Global Rankings" : `${selectedTourneyName}`}
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {selectedTourneyId === "all"
+              ? "All-time team power ratings built from every TFF tournament result, title and match win."
+              : `Standings & rating metrics for ${selectedTourneyName}.`}
+          </p>
+        </div>
+
+        {/* Filter Dropdown */}
+        <div className="flex items-center gap-2 bg-secondary/30 p-2 rounded-xl border border-border/60 shrink-0">
+          <Filter className="size-4 text-primary ml-1" />
+          <span className="text-xs font-semibold label-caps text-muted-foreground hidden sm:inline">Filter:</span>
+          <select
+            value={selectedTourneyId}
+            onChange={(e) => setSelectedTourneyId(e.target.value)}
+            className="bg-background border border-border text-sm font-semibold rounded-lg px-3 py-1.5 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+          >
+            <option value="all">🏆 All-Time (All Tournaments)</option>
+            {tournaments.data?.map((t) => (
+              <option key={t.id} value={t.id}>
+                ⚽ {t.name} ({t.season_year || "Past"})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {careers.length ? (
         <div className="panel overflow-x-auto">
@@ -99,7 +155,7 @@ function RankingsPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="inline-flex items-center gap-1 text-primary">
+                    <span className="inline-flex items-center gap-1 text-primary font-bold">
                       {career.titles > 0 && <Crown className="size-3.5" />}
                       {career.titles}
                     </span>
@@ -114,7 +170,7 @@ function RankingsPage() {
                   <td className="px-4 py-3 text-center">
                     {career.played ? Math.round((career.wins / career.played) * 100) : 0}%
                   </td>
-                  <td className="font-display px-4 py-3 text-right text-xl text-primary">
+                  <td className="font-display px-4 py-3 text-right text-xl text-primary font-bold">
                     {career.rankingPoints}
                   </td>
                 </tr>
@@ -131,3 +187,4 @@ function RankingsPage() {
     </div>
   );
 }
+
