@@ -863,6 +863,7 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
 /* ------------------------------- MATCHES TAB -------------------------------- */
 function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
   const [selectedTourneyId, setSelectedTourneyId] = useState("");
+  const [activeStageTab, setActiveStageTab] = useState<"league" | "knockout">("league");
   const queryClient = useQueryClient();
 
   const fixturesQuery = useQuery({
@@ -883,12 +884,13 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
   const [awayScore, setAwayScore] = useState(0);
 
   // State for adding a fixture manually
+  const [newStage, setNewStage] = useState<"league" | "knockout">("league");
+  const [newRound, setNewRound] = useState<string>("Semi Final");
   const [newHomeId, setNewHomeId] = useState("");
   const [newAwayId, setNewAwayId] = useState("");
   const [newMatchday, setNewMatchday] = useState(1);
 
   // Generate schedule using proper circle/Berger-table round-robin
-  // Guarantees each team plays EXACTLY ONCE per matchday
   async function generateSchedule() {
     if (!selectedTourneyId || !tourneyTeamsQuery.data?.length) return;
     const teams = tourneyTeamsQuery.data;
@@ -898,15 +900,13 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
     }
 
     try {
-      toast.info("Generating schedule...");
+      toast.info("Generating Round Robin schedule...");
       const list = [...teams];
-      // If odd number of teams, add a "bye" slot
       if (list.length % 2 !== 0) list.push(null as any);
       const totalTeams = list.length;
       const rounds = totalTeams - 1;
       const matchesPerRound = totalTeams / 2;
 
-      // Circle method: fix first team, rotate the rest
       const rotation = list.slice(1);
       const matchdayFixtures: any[] = [];
 
@@ -915,7 +915,6 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
         for (let i = 0; i < matchesPerRound; i++) {
           const home = current[i];
           const away = current[totalTeams - 1 - i];
-          // Skip bye slots (null)
           if (home && away) {
             matchdayFixtures.push({
               tournament_id: selectedTourneyId,
@@ -927,34 +926,108 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
             });
           }
         }
-        // Rotate: move last element to front of rotation
         rotation.unshift(rotation.pop()!);
       }
 
       const { error } = await supabase.from("fixtures").insert(matchdayFixtures);
       if (error) throw error;
       toast.success(`Schedule generated: ${rounds} matchdays, ${matchdayFixtures.length} fixtures!`);
+      setActiveStageTab("league");
       queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
     } catch (err: any) {
       toast.error(err.message || "Failed to generate schedule.");
     }
   }
 
+  // Generate Top 4 Knockout Bracket (Semi Finals, 3rd Place & Final)
+  async function generateTop4Knockout() {
+    if (!selectedTourneyId || !tourneyTeamsQuery.data?.length) return;
+    const teams = tourneyTeamsQuery.data;
+    if (teams.length < 2) {
+      toast.error("You need at least 2 teams to generate a Knockout Bracket.");
+      return;
+    }
+
+    try {
+      toast.info("Generating Top 4 Knockout Bracket...");
+      const standingsData = await fetchStandings(selectedTourneyId).catch(() => []);
+      const sortedTeams = standingsData.length > 0
+        ? standingsData.map((s: any) => teams.find((t: any) => t.id === s.team_id)).filter(Boolean)
+        : teams;
+
+      const team1 = sortedTeams[0] || teams[0];
+      const team2 = sortedTeams[1] || teams[1];
+      const team3 = sortedTeams[2] || teams[2] || null;
+      const team4 = sortedTeams[3] || teams[3] || null;
+
+      const knockoutFixtures = [
+        {
+          tournament_id: selectedTourneyId,
+          home_team_id: team1?.id || null,
+          away_team_id: team4?.id || null,
+          stage: "knockout",
+          round: "Semi Final",
+          bracket_slot: 1,
+          status: "scheduled",
+        },
+        {
+          tournament_id: selectedTourneyId,
+          home_team_id: team2?.id || null,
+          away_team_id: team3?.id || null,
+          stage: "knockout",
+          round: "Semi Final",
+          bracket_slot: 2,
+          status: "scheduled",
+        },
+        {
+          tournament_id: selectedTourneyId,
+          home_team_id: null,
+          away_team_id: null,
+          stage: "knockout",
+          round: "Third Place",
+          bracket_slot: 3,
+          status: "scheduled",
+        },
+        {
+          tournament_id: selectedTourneyId,
+          home_team_id: null,
+          away_team_id: null,
+          stage: "knockout",
+          round: "Final",
+          bracket_slot: 4,
+          status: "scheduled",
+        },
+      ];
+
+      const { error } = await supabase.from("fixtures").insert(knockoutFixtures);
+      if (error) throw error;
+      toast.success("Knockout Bracket generated (2 Semi Finals, 3rd Place & Final)!");
+      setActiveStageTab("knockout");
+      queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate knockout bracket.");
+    }
+  }
+
   async function addFixture() {
-    if (!newHomeId || !newAwayId) { toast.error("Select both teams."); return; }
-    if (newHomeId === newAwayId) { toast.error("Home and Away teams must be different."); return; }
+    if (newHomeId && newAwayId && newHomeId === newAwayId) {
+      toast.error("Home and Away teams must be different.");
+      return;
+    }
     try {
       const { error } = await supabase.from("fixtures").insert([{
         tournament_id: selectedTourneyId,
-        matchday: newMatchday,
-        home_team_id: newHomeId,
-        away_team_id: newAwayId,
-        stage: "league",
+        matchday: newStage === "league" ? newMatchday : null,
+        home_team_id: newHomeId || null,
+        away_team_id: newAwayId || null,
+        stage: newStage,
+        round: newStage === "knockout" ? newRound : null,
         status: "scheduled",
       }]);
       if (error) throw error;
-      toast.success("Fixture added!");
-      setNewHomeId(""); setNewAwayId(""); setNewMatchday(1);
+      toast.success(`Added ${newStage === "knockout" ? newRound : `Matchday ${newMatchday}`} fixture!`);
+      setNewHomeId(""); setNewAwayId("");
+      if (newStage === "knockout") setActiveStageTab("knockout");
       queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
     } catch (err: any) {
       toast.error(err.message || "Failed to add fixture.");
@@ -980,7 +1053,6 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
     if (!confirm(`Delete ALL ${fixturesQuery.data.length} fixtures for this tournament? This cannot be undone.`)) return;
     try {
       const ids = fixturesQuery.data.map((f) => f.id);
-      // Delete results first (FK constraint)
       await supabase.from("results").delete().in("fixture_id", ids);
       const { error } = await supabase.from("fixtures").delete().eq("tournament_id", selectedTourneyId);
       if (error) throw error;
@@ -998,7 +1070,6 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
     e.preventDefault();
     if (!selectedFixture) return;
     try {
-      // 1. Insert or update results
       const { data: existingResult } = await supabase
         .from("results")
         .select("id")
@@ -1018,7 +1089,6 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
         if (error) throw error;
       }
 
-      // 2. Update fixture status to completed
       const { error: fixError } = await supabase
         .from("fixtures")
         .update({ status: "completed" })
@@ -1035,6 +1105,12 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
     }
   }
 
+  const allFixtures = fixturesQuery.data || [];
+  const leagueFixtures = allFixtures.filter((f) => f.stage !== "knockout" && !f.round);
+  const knockoutFixtures = allFixtures.filter((f) => f.stage === "knockout" || !!f.round);
+
+  const KNOCKOUT_ROUNDS = ["Round of 16", "Quarter Final", "Semi Final", "Third Place", "Final"];
+
   return (
     <div className="panel p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -1046,7 +1122,7 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
               setSelectedTourneyId(e.target.value);
               setSelectedFixture(null);
             }}
-            className="h-10 px-3 rounded-md border border-input bg-background text-sm"
+            className="h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
           >
             <option value="">-- Choose Tournament --</option>
             {tournaments.map((t) => (
@@ -1056,9 +1132,14 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
         </div>
 
         {selectedTourneyId && (
-          <Button onClick={generateSchedule} variant="outline" size="sm">
-            Auto-Generate Round Robin
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={generateSchedule} variant="outline" size="sm" className="gap-1">
+              ⚽ Auto-Generate Round Robin
+            </Button>
+            <Button onClick={generateTop4Knockout} variant="secondary" size="sm" className="gap-1 border border-primary/40 text-primary">
+              🏆 Auto-Generate Top 4 Knockout
+            </Button>
+          </div>
         )}
       </div>
 
@@ -1066,78 +1147,183 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
         <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold font-display tracking-wider">Fixtures</h3>
-              {fixturesQuery.data && fixturesQuery.data.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={generateSchedule}>Re-Generate</Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={deleteAllFixtures}
-                    className="gap-1"
-                  >
-                    <Trash2 className="size-3.5" /> Delete All
-                  </Button>
-                </div>
+              <h3 className="text-lg font-bold font-display tracking-wider">Tournament Fixtures</h3>
+              {allFixtures.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={deleteAllFixtures}
+                  className="gap-1"
+                >
+                  <Trash2 className="size-3.5" /> Delete All Fixtures
+                </Button>
               )}
             </div>
 
-            {/* Add fixture manually */}
-            <div className="panel p-4 space-y-3 border-dashed">
-              <p className="text-xs font-semibold text-muted-foreground label-caps">Add Fixture Manually</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div>
-                  <label className="text-[10px] text-zinc-500 uppercase">Matchday</label>
-                  <input
-                    type="number" min={1} value={newMatchday}
-                    onChange={(e) => setNewMatchday(parseInt(e.target.value) || 1)}
-                    className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
-                  />
+            {/* Add Fixture Form */}
+            <div className="panel p-4 space-y-3 border-dashed border-primary/40 bg-primary/5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-primary label-caps uppercase tracking-wider">Add Fixture Manually</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewStage("league")}
+                    className={`text-xs px-2.5 py-1 rounded font-semibold transition-colors ${newStage === "league" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                  >
+                    ⚽ League / Round Robin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewStage("knockout")}
+                    className={`text-xs px-2.5 py-1 rounded font-semibold transition-colors ${newStage === "knockout" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                  >
+                    🏆 Knockout Stage
+                  </button>
                 </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 uppercase">Home Team</label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 items-end">
+                {newStage === "league" ? (
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase font-semibold">Matchday #</label>
+                    <input
+                      type="number" min={1} value={newMatchday}
+                      onChange={(e) => setNewMatchday(parseInt(e.target.value) || 1)}
+                      className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase font-semibold">Knockout Round</label>
+                    <select
+                      value={newRound}
+                      onChange={(e) => setNewRound(e.target.value)}
+                      className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm font-semibold"
+                    >
+                      <option value="Quarter Final">Quarter Final</option>
+                      <option value="Semi Final">Semi Final</option>
+                      <option value="Third Place">3rd Place Match</option>
+                      <option value="Final">Final 🏆</option>
+                      <option value="Round of 16">Round of 16</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="sm:col-span-1">
+                  <label className="text-[10px] text-zinc-500 uppercase font-semibold">Home Team</label>
                   <select value={newHomeId} onChange={(e) => setNewHomeId(e.target.value)} className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm">
-                    <option value="">-- Home --</option>
+                    <option value="">-- TBD / Select Home --</option>
                     {tourneyTeamsQuery.data?.map((t: any) => (<option key={t.id} value={t.id}>{t.name}</option>))}
                   </select>
                 </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 uppercase">Away Team</label>
+
+                <div className="sm:col-span-1">
+                  <label className="text-[10px] text-zinc-500 uppercase font-semibold">Away Team</label>
                   <select value={newAwayId} onChange={(e) => setNewAwayId(e.target.value)} className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm">
-                    <option value="">-- Away --</option>
+                    <option value="">-- TBD / Select Away --</option>
                     {tourneyTeamsQuery.data?.map((t: any) => (<option key={t.id} value={t.id}>{t.name}</option>))}
                   </select>
                 </div>
-                <div className="flex items-end">
-                  <Button className="w-full" size="sm" onClick={addFixture}>
-                    <Plus className="size-3.5 mr-1" /> Add
+
+                <div className="col-span-2 sm:col-span-2">
+                  <Button className="w-full h-9" size="sm" onClick={addFixture}>
+                    <Plus className="size-3.5 mr-1" /> Add {newStage === "knockout" ? newRound : `Matchday ${newMatchday}`} Match
                   </Button>
                 </div>
               </div>
             </div>
 
-            {/* Matchday-grouped fixture tables */}
+            {/* Stage View Filter Tabs */}
+            <div className="flex border-b border-border">
+              <button
+                type="button"
+                onClick={() => setActiveStageTab("league")}
+                className={`py-2 px-4 text-sm font-semibold border-b-2 transition-colors ${activeStageTab === "league" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                ⚽ Round Robin Matches ({leagueFixtures.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveStageTab("knockout")}
+                className={`py-2 px-4 text-sm font-semibold border-b-2 transition-colors ${activeStageTab === "knockout" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                🏆 Knockout Bracket & Finals ({knockoutFixtures.length})
+              </button>
+            </div>
+
+            {/* Matchday / Knockout Grouped Tables */}
             <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
-              {fixturesQuery.data && fixturesQuery.data.length > 0 ? (
-                [...new Set(fixturesQuery.data.map((f) => f.matchday ?? 0))]
-                  .sort((a, b) => a - b)
-                  .map((matchday) => {
-                    const group = fixturesQuery.data!.filter((f) => (f.matchday ?? 0) === matchday);
+              {activeStageTab === "league" ? (
+                leagueFixtures.length > 0 ? (
+                  [...new Set(leagueFixtures.map((f) => f.matchday ?? 0))]
+                    .sort((a, b) => a - b)
+                    .map((matchday) => {
+                      const group = leagueFixtures.filter((f) => (f.matchday ?? 0) === matchday);
+                      return (
+                        <div key={matchday} className="border border-border/60 rounded-lg overflow-hidden">
+                          <div className="bg-secondary/30 px-4 py-2 flex items-center justify-between">
+                            <span className="font-display text-sm font-bold tracking-wider text-primary">MATCHDAY {matchday}</span>
+                            <span className="text-xs text-zinc-500">{group.length} match{group.length !== 1 ? "es" : ""}</span>
+                          </div>
+                          <table className="w-full text-sm">
+                            <tbody className="divide-y divide-border/30">
+                              {group.map((f) => (
+                                <tr key={f.id} className="hover:bg-secondary/10 transition-colors">
+                                  <td className="px-4 py-2.5 text-right font-semibold w-[35%]">{f.home?.name || "TBD"}</td>
+                                  <td className="px-2 py-2.5 text-center w-[12%]">
+                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${f.status === "completed"
+                                        ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                        : "bg-primary/20 text-primary"
+                                      }`}>
+                                      {f.status === "completed"
+                                        ? `${f.result?.home_score} - ${f.result?.away_score}`
+                                        : "VS"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-2.5 text-left font-semibold w-[35%]">{f.away?.name || "TBD"}</td>
+                                  <td className="px-2 py-2.5 text-right w-[18%]">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button
+                                        size="sm" variant="secondary"
+                                        className="h-7 text-xs px-2"
+                                        onClick={() => { setSelectedFixture(f); setHomeScore(f.result?.home_score || 0); setAwayScore(f.result?.away_score || 0); }}
+                                      >
+                                        {f.status === "completed" ? "Edit" : "Score"}
+                                      </Button>
+                                      <Button size="icon" variant="ghost" className="size-7 hover:text-destructive" onClick={() => deleteFixture(f.id)}>
+                                        <Trash2 className="size-3" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })
+                ) : (
+                  <p className="text-xs text-muted-foreground p-6 text-center">No round robin league fixtures yet. Click "Auto-Generate Round Robin" or add manually above.</p>
+                )
+              ) : (
+                knockoutFixtures.length > 0 ? (
+                  KNOCKOUT_ROUNDS.filter((r) => knockoutFixtures.some((f) => f.round === r)).map((roundName) => {
+                    const group = knockoutFixtures.filter((f) => f.round === roundName);
                     return (
-                      <div key={matchday} className="border border-border/60 rounded-lg overflow-hidden">
-                        <div className="bg-secondary/30 px-4 py-2 flex items-center gap-2">
-                          <span className="font-display text-sm font-bold tracking-wider text-primary">MATCHDAY {matchday}</span>
-                          <span className="text-xs text-zinc-500">{group.length} match{group.length !== 1 ? "es" : ""}</span>
+                      <div key={roundName} className="border border-primary/40 rounded-lg overflow-hidden bg-primary/5">
+                        <div className="bg-primary/20 px-4 py-2 flex items-center justify-between border-b border-primary/30">
+                          <span className="font-display text-sm font-bold tracking-wider text-primary uppercase">{roundName}</span>
+                          <span className="text-xs text-primary/80 font-semibold">{group.length} match{group.length !== 1 ? "es" : ""}</span>
                         </div>
                         <table className="w-full text-sm">
                           <tbody className="divide-y divide-border/30">
                             {group.map((f) => (
-                              <tr key={f.id} className="hover:bg-secondary/10 transition-colors">
+                              <tr key={f.id} className="hover:bg-primary/10 transition-colors">
                                 <td className="px-4 py-2.5 text-right font-semibold w-[35%]">{f.home?.name || "TBD"}</td>
                                 <td className="px-2 py-2.5 text-center w-[12%]">
-                                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${f.status === "completed"
-                                      ? "bg-green-500/20 text-green-400"
-                                      : "bg-primary/20 text-primary"
+                                  <span className={`px-2.5 py-0.5 rounded text-xs font-bold ${f.status === "completed"
+                                      ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                      : "bg-primary/20 text-primary border border-primary/30"
                                     }`}>
                                     {f.status === "completed"
                                       ? `${f.result?.home_score} - ${f.result?.away_score}`
@@ -1149,7 +1335,7 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                   <div className="flex items-center justify-end gap-1">
                                     <Button
                                       size="sm" variant="secondary"
-                                      className="h-7 text-xs px-2"
+                                      className="h-7 text-xs px-2 border border-primary/40"
                                       onClick={() => { setSelectedFixture(f); setHomeScore(f.result?.home_score || 0); setAwayScore(f.result?.away_score || 0); }}
                                     >
                                       {f.status === "completed" ? "Edit" : "Score"}
@@ -1166,22 +1352,25 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                       </div>
                     );
                   })
-              ) : (
-                <p className="text-xs text-muted-foreground p-4 text-center">No fixtures yet. Add manually or auto-generate above.</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground p-6 text-center">No knockout fixtures yet. Click "Auto-Generate Top 4 Knockout" or select "Knockout Stage" in the manual form above.</p>
+                )
               )}
             </div>
           </div>
 
           {selectedFixture && (
             <div className="panel p-6 space-y-4 h-fit border-primary/40">
-              <h3 className="text-lg font-bold font-display tracking-wider">Record Match Score</h3>
+              <h3 className="text-lg font-bold font-display tracking-wider">
+                Record Score — {selectedFixture.stage === "knockout" ? selectedFixture.round : `Matchday ${selectedFixture.matchday}`}
+              </h3>
               <form onSubmit={handleRecordScore} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground label-caps">{selectedFixture.home?.name}</label>
+                  <label className="text-xs text-muted-foreground label-caps">{selectedFixture.home?.name || "Home Team (TBD)"}</label>
                   <Input type="number" min={0} required value={homeScore} onChange={(e) => setHomeScore(parseInt(e.target.value))} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground label-caps">{selectedFixture.away?.name}</label>
+                  <label className="text-xs text-muted-foreground label-caps">{selectedFixture.away?.name || "Away Team (TBD)"}</label>
                   <Input type="number" min={0} required value={awayScore} onChange={(e) => setAwayScore(parseInt(e.target.value))} />
                 </div>
                 <div className="flex gap-2">
