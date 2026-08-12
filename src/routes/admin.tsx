@@ -19,6 +19,8 @@ import {
   sortStandings,
   getTeamFoundedYear,
   setTeamFoundedYear,
+  getManualStandings,
+  saveManualStandings,
   type RankingConfig,
 } from "@/lib/tff";
 
@@ -1254,6 +1256,8 @@ function StandingsTabContent({ tournaments, teams }: { tournaments: any[]; teams
   const standingsQuery = useQuery({
     queryKey: ["standings-admin", selectedTourneyId],
     queryFn: async () => {
+      const manual = getManualStandings(selectedTourneyId);
+      if (manual.length > 0) return manual;
       const { data } = await supabase.from("standings").select("*").eq("tournament_id", selectedTourneyId);
       return data ?? [];
     },
@@ -1406,11 +1410,10 @@ function StandingsTabContent({ tournaments, teams }: { tournaments: any[]; teams
     }
     setLoading(true);
     try {
-      await supabase.from("standings").delete().eq("tournament_id", selectedTourneyId);
-
       const validRows = rows.filter((r) => r.team_id).map((r) => ({
         tournament_id: selectedTourneyId,
         team_id: r.team_id,
+        group_id: null,
         played: Number(r.played) || 0,
         wins: Number(r.wins) || 0,
         draws: Number(r.draws) || 0,
@@ -1421,11 +1424,10 @@ function StandingsTabContent({ tournaments, teams }: { tournaments: any[]; teams
         points: Number(r.points) || 0,
       }));
 
-      if (validRows.length > 0) {
-        const { error } = await supabase.from("standings").insert(validRows);
-        if (error) throw error;
-      }
+      // Save to manual standings storage (bypasses PostgreSQL view insert constraint)
+      saveManualStandings(selectedTourneyId, validRows);
 
+      // Associate teams with tournament_teams in Supabase DB
       for (const r of validRows) {
         await supabase.from("tournament_teams").upsert(
           [{ tournament_id: selectedTourneyId, team_id: r.team_id }],

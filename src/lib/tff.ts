@@ -227,7 +227,35 @@ export async function fetchUpcomingFixtures(limit = 6): Promise<FixtureWithTeams
   return normalized.filter((f: any) => !f.tournament?.is_demo).slice(0, limit);
 }
 
+export function getManualStandings(tournamentId?: string): StandingRow[] {
+  try {
+    const raw = localStorage.getItem("tff_manual_standings");
+    if (!raw) return [];
+    const allMap: Record<string, StandingRow[]> = JSON.parse(raw);
+    if (tournamentId) {
+      return allMap[tournamentId] || [];
+    }
+    return Object.values(allMap).flat();
+  } catch {
+    return [];
+  }
+}
+
+export function saveManualStandings(tournamentId: string, rows: StandingRow[]): void {
+  try {
+    const raw = localStorage.getItem("tff_manual_standings");
+    const allMap: Record<string, StandingRow[]> = raw ? JSON.parse(raw) : {};
+    allMap[tournamentId] = rows;
+    localStorage.setItem("tff_manual_standings", JSON.stringify(allMap));
+  } catch (e) {
+    console.error("Failed to save manual standings to localStorage", e);
+  }
+}
+
 export async function fetchStandings(tournamentId: string): Promise<StandingRow[]> {
+  const manual = getManualStandings(tournamentId);
+  if (manual.length > 0) return manual;
+
   const { data, error } = await db.from("standings").select("*").eq("tournament_id", tournamentId);
   if (error) throw error;
   return (data ?? []) as StandingRow[];
@@ -235,8 +263,16 @@ export async function fetchStandings(tournamentId: string): Promise<StandingRow[
 
 export async function fetchAllStandings(): Promise<StandingRow[]> {
   const { data, error } = await db.from("standings").select("*, tournament:tournament_id(id,is_demo)");
-  if (error) throw error;
-  return ((data ?? []) as any[]).filter((row) => !row.tournament?.is_demo) as StandingRow[];
+  let dbRows = ((data ?? []) as any[]).filter((row) => !row.tournament?.is_demo) as StandingRow[];
+
+  const manualAll = getManualStandings();
+  if (manualAll.length > 0) {
+    const manualTourneyIds = new Set(manualAll.map((m) => m.tournament_id));
+    dbRows = dbRows.filter((r) => !manualTourneyIds.has(r.tournament_id));
+    return [...dbRows, ...manualAll];
+  }
+
+  return dbRows;
 }
 
 export async function fetchChampions(): Promise<Champion[]> {
