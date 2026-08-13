@@ -130,9 +130,9 @@ function Home() {
     <div>
       <Hero />
       <div className="mx-auto max-w-7xl space-y-20 px-4 py-16 sm:px-6">
-        <LiveStreamSection liveUrl={config.data?.youtube_live_url} />
-
         <TrophyRevealCard />
+
+        <LiveStreamSection liveUrl={config.data?.youtube_live_url} />
 
         {active && (
           <ActiveTournament tournamentId={active.id} slug={active.slug} />
