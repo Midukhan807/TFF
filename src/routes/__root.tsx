@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Triad Football Federation (TFF) | Triad Champions League & eFootball Hub" },
+      { title: "Triad Football Federation (TFF) | Triad Champions League" },
       {
         name: "description",
         content:
@@ -94,13 +94,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "google-site-verification", content: "googled6272ab66f432fba" },
 
       // Open Graph / Facebook
-      { property: "og:site_name", content: "Triad Football Federation (TFF)" },
+      { property: "og:site_name", content: "Triad Football Federation" },
       { property: "og:type", content: "website" },
-      { property: "og:title", content: "Triad Football Federation (TFF) | Triad Champions League & eFootball Hub" },
+      { property: "og:title", content: "Triad Football Federation (TFF) | Triad Champions League" },
       {
         property: "og:description",
         content: "Compete. Conquer. Create History. Official home of the Triad Football Federation (TFF) and Triad Champions League (TCL).",
       },
+      { property: "og:url", content: "https://triadfootballfederation.vercel.app" },
+      { property: "og:image", content: "https://triadfootballfederation.vercel.app/logo.png" },
 
       // Twitter Cards
       { name: "twitter:card", content: "summary_large_image" },
@@ -109,10 +111,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "twitter:description",
         content: "Official eFootball tournament hub for Triad Football Federation (TFF) and Triad Champions League (TCL).",
       },
+      { name: "twitter:image", content: "https://triadfootballfederation.vercel.app/logo.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "canonical", href: "https://triadfootballfederation.vercel.app" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -125,13 +131,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "SportsOrganization",
-          "name": "Triad Football Federation",
-          "alternateName": ["TFF", "TFF eFootball", "Triad Champions League", "TCL"],
-          "url": "https://tff-tournament-hub.pages.dev",
-          "description": "Official website of the Triad Football Federation (TFF eFootball) and Triad Champions League (TCL). Follow eFootball competitions, live fixtures, standings, team power rankings, and Hall of Champions.",
-          "sport": "eFootball",
-          "keywords": "Triad Football Federation, Triad Champions League, TFF, TFF eFootball, Triad Football",
+          "@graph": [
+            {
+              "@type": "WebSite",
+              "@id": "https://triadfootballfederation.vercel.app/#website",
+              "url": "https://triadfootballfederation.vercel.app",
+              "name": "Triad Football Federation",
+              "alternateName": ["TFF", "TFF eFootball", "Triad Champions League", "TCL"],
+              "publisher": {
+                "@type": "SportsOrganization",
+                "name": "Triad Football Federation"
+              }
+            },
+            {
+              "@type": "SportsOrganization",
+              "@id": "https://triadfootballfederation.vercel.app/#organization",
+              "name": "Triad Football Federation",
+              "alternateName": ["TFF", "TFF eFootball", "Triad Champions League", "TCL"],
+              "url": "https://triadfootballfederation.vercel.app",
+              "logo": "https://triadfootballfederation.vercel.app/logo.png",
+              "description": "Official website of the Triad Football Federation (TFF eFootball) and Triad Champions League (TCL). Follow eFootball competitions, live fixtures, standings, team power rankings, and Hall of Champions.",
+              "sport": "eFootball"
+            }
+          ]
         }),
       },
     ],
