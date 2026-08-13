@@ -7,6 +7,7 @@ import { FixtureCard } from "@/components/tff/ui";
 import { TeamLogo } from "@/components/tff/branding";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { TrophyRevealCard, TrophyRevealModalButton } from "@/components/tff/trophy-reveal-card";
 import {
   fetchChampions,
   fetchFixtures,
@@ -131,6 +132,8 @@ function Home() {
       <div className="mx-auto max-w-7xl space-y-20 px-4 py-16 sm:px-6">
         <LiveStreamSection liveUrl={config.data?.youtube_live_url} />
 
+        <TrophyRevealCard />
+
         {active && (
           <ActiveTournament tournamentId={active.id} slug={active.slug} />
         )}
@@ -224,6 +227,7 @@ function Hero() {
           <Button asChild size="lg">
             <Link to="/tournaments">View Tournaments</Link>
           </Button>
+          <TrophyRevealModalButton label="Watch Trophy Reveal" />
           <Button asChild size="lg" variant="secondary">
             <Link to="/teams">View Teams</Link>
           </Button>

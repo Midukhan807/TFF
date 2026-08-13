@@ -3,6 +3,7 @@ import { Gamepad2, Trophy, Users } from "lucide-react";
 
 import { SectionHeading } from "@/components/tff/ui";
 import { Button } from "@/components/ui/button";
+import { TrophyRevealCard } from "@/components/tff/trophy-reveal-card";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -81,6 +82,10 @@ function AboutPage() {
             <p className="font-display mt-1 text-xl">{item.value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-12">
+        <TrophyRevealCard />
       </div>
 
       <section className="mt-14">

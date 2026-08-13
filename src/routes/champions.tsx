@@ -6,6 +6,8 @@ import { EmptyState, SectionHeading, StatCard } from "@/components/tff/ui";
 import { TeamLogo } from "@/components/tff/branding";
 import { fetchChampions, fetchTeams, fetchTournaments } from "@/lib/tff";
 
+import { TrophyRevealCard } from "@/components/tff/trophy-reveal-card";
+
 export const Route = createFileRoute("/champions")({
   head: () => ({
     meta: [
@@ -48,14 +50,16 @@ function ChampionsPage() {
   const mostDecorated = [...titleCount.entries()].sort((a, b) => b[1] - a[1]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 space-y-10">
       <SectionHeading
         eyebrow="Legacy"
         title="Hall of Champions"
         subtitle="Completed TFF tournaments are preserved forever. These are the sides that made history."
       />
 
-      <div className="mb-12 grid gap-4 sm:grid-cols-3">
+      <TrophyRevealCard />
+
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Tournaments Won" value={list.length} />
         <StatCard label="Different Champions" value={titleCount.size} />
         <StatCard
