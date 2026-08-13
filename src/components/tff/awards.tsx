@@ -186,64 +186,6 @@ export function TournamentAwardsSection({
           </p>
         </div>
 
-        {/* 4. PLAYER OF THE TOURNAMENT (MVP) */}
-        <div className="panel relative overflow-hidden p-6 border-purple-500/40 bg-gradient-to-b from-purple-500/5 to-transparent">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-purple-400">
-              <Award className="size-5" />
-              <span className="label-caps font-semibold">Tournament MVP</span>
-            </div>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 font-display">
-              MOST VALUABLE
-            </span>
-          </div>
-
-          <div className="mt-5 flex items-center gap-4">
-            <div className="size-14 rounded-full bg-purple-500/10 border-2 border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0">
-              <User className="size-7" />
-            </div>
-            <div>
-              <p className="font-display text-2xl text-white">{mvpName}</p>
-              <p className="text-xs text-purple-400 font-medium">
-                {mvpStat ? `${mvpStat.motm} Man of the Match Awards` : "Official TFF MVP"}
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-4 text-xs text-muted-foreground bg-zinc-900/60 p-3 rounded-lg border border-border/40">
-            Recognizing the standout player who delivered game-changing performances throughout the competition.
-          </p>
-        </div>
-
-        {/* 5. GOLDEN BOOT PLAYER */}
-        <div className="panel relative overflow-hidden p-6 border-yellow-500/40 bg-gradient-to-b from-yellow-500/5 to-transparent">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-yellow-400">
-              <Flame className="size-5" />
-              <span className="label-caps font-semibold">Golden Boot Player</span>
-            </div>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 font-display">
-              TOP SCORER
-            </span>
-          </div>
-
-          <div className="mt-5 flex items-center gap-4">
-            <div className="size-14 rounded-full bg-yellow-500/10 border-2 border-yellow-500/40 flex items-center justify-center text-yellow-400 shrink-0">
-              <Goal className="size-7" />
-            </div>
-            <div>
-              <p className="font-display text-2xl text-white">{topScorerName}</p>
-              <p className="text-xs text-yellow-400 font-medium">
-                {topPlayerStat ? `${topPlayerStat.goals} Goals Scored` : "Individual Goal King"}
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-4 text-xs text-muted-foreground bg-zinc-900/60 p-3 rounded-lg border border-border/40">
-            Awarded to the tournament's highest individual goalscorer across all matches.
-          </p>
-        </div>
-
         {/* 6. MATCH THRILLER OF THE TOURNAMENT */}
         <div className="panel relative overflow-hidden p-6 border-emerald-500/40 bg-gradient-to-b from-emerald-500/5 to-transparent">
           <div className="flex items-center justify-between">
