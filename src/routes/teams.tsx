@@ -4,7 +4,15 @@ import { useState } from "react";
 
 import { EmptyState, SectionHeading, TeamCard } from "@/components/tff/ui";
 import { Input } from "@/components/ui/input";
-import { fetchTeams } from "@/lib/tff";
+import {
+  DEFAULT_RANKING,
+  buildCareers,
+  fetchAllFixtures,
+  fetchAllStandings,
+  fetchChampions,
+  fetchRankingConfig,
+  fetchTeams,
+} from "@/lib/tff";
 
 export const Route = createFileRoute("/teams")({
   head: () => ({
@@ -28,6 +36,23 @@ export const Route = createFileRoute("/teams")({
 function TeamsPage() {
   const [search, setSearch] = useState("");
   const teams = useQuery({ queryKey: ["teams"], queryFn: fetchTeams });
+  const standings = useQuery({ queryKey: ["all-standings"], queryFn: fetchAllStandings });
+  const champions = useQuery({ queryKey: ["champions"], queryFn: fetchChampions });
+  const fixtures = useQuery({ queryKey: ["all-fixtures"], queryFn: fetchAllFixtures });
+  const config = useQuery({ queryKey: ["ranking-config"], queryFn: fetchRankingConfig });
+
+  const ranking = config.data ?? DEFAULT_RANKING;
+
+  const careers = buildCareers(
+    teams.data ?? [],
+    standings.data ?? [],
+    champions.data ?? [],
+    ranking,
+    fixtures.data ?? [],
+  );
+
+  const careerMap = new Map(careers.map((c) => [c.team.id, c]));
+
   const filtered = (teams.data ?? []).filter((team) =>
     team.name.toLowerCase().includes(search.toLowerCase()),
   );
@@ -49,9 +74,17 @@ function TeamsPage() {
       />
       {filtered.length ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((team) => (
-            <TeamCard key={team.id} team={team} />
-          ))}
+          {filtered.map((team) => {
+            const stats = careerMap.get(team.id);
+            return (
+              <TeamCard
+                key={team.id}
+                team={team}
+                played={stats?.played}
+                titles={stats?.titles}
+              />
+            );
+          })}
         </div>
       ) : (
         <EmptyState

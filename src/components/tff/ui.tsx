@@ -112,7 +112,15 @@ export function EmptyState({
 
 /* --------------------------------- cards ---------------------------------- */
 
-export function TeamCard({ team }: { team: Team }) {
+export function TeamCard({
+  team,
+  played,
+  titles,
+}: {
+  team: Team;
+  played?: number | string;
+  titles?: number | string;
+}) {
   const primaryColor = team.team_color || "#D4A017";
   const foundedYear = getTeamFoundedYear(team);
 
@@ -229,14 +237,18 @@ export function TeamCard({ team }: { team: Team }) {
             <Activity className="size-4" style={{ color: primaryColor }} />
             <span className="text-xs uppercase tracking-wider font-medium text-zinc-500">Matches Played</span>
           </div>
-          <span className="font-display text-white font-medium">--</span>
+          <span className="font-display text-white font-medium">
+            {played !== undefined && played !== null ? played : "--"}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Trophy className="size-4" style={{ color: primaryColor }} />
             <span className="text-xs uppercase tracking-wider font-medium text-zinc-500">Titles</span>
           </div>
-          <span className="font-display text-white font-medium">00</span>
+          <span className="font-display text-white font-medium">
+            {titles !== undefined && titles !== null ? String(titles).padStart(2, "0") : "00"}
+          </span>
         </div>
       </div>
 
