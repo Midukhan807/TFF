@@ -17,6 +17,7 @@ export interface Team {
   name: string;
   short_name: string;
   logo_url: string | null;
+  logo_video_url?: string | null;
   manager_name: string | null;
   team_color: string;
   founded_year: number | null;
@@ -385,6 +386,45 @@ export function setTeamFoundedYear(teamId: string, year: number) {
     const map = stored ? JSON.parse(stored) : {};
     map[teamId] = year;
     localStorage.setItem("tff_founded_years", JSON.stringify(map));
+  } catch {}
+}
+
+export function getTeamVideoLogo(team: any): string | null {
+  if (!team) return null;
+  if (team.logo_video_url) return team.logo_video_url;
+
+  if (typeof window !== "undefined" && team.id) {
+    try {
+      const stored = localStorage.getItem("tff_team_video_logos");
+      if (stored) {
+        const map = JSON.parse(stored);
+        if (map[team.id]) return map[team.id];
+      }
+    } catch {}
+  }
+
+  // Fallback default animated logo for DEMONIC FC
+  if (
+    team.name?.toLowerCase().includes("demonic") ||
+    team.short_name?.toUpperCase() === "DMN"
+  ) {
+    return "/Video Project 16.mp4";
+  }
+
+  return null;
+}
+
+export function setTeamVideoLogo(teamId: string, videoUrl: string | null) {
+  if (typeof window === "undefined" || !teamId) return;
+  try {
+    const stored = localStorage.getItem("tff_team_video_logos");
+    const map = stored ? JSON.parse(stored) : {};
+    if (videoUrl) {
+      map[teamId] = videoUrl;
+    } else {
+      delete map[teamId];
+    }
+    localStorage.setItem("tff_team_video_logos", JSON.stringify(map));
   } catch {}
 }
 

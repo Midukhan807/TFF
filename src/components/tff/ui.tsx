@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Trophy, Shield, Users, Eye, User, Shirt, Activity, Calendar } from "lucide-react";
 
@@ -8,6 +9,7 @@ import {
   formatDate,
   formatTime,
   getTeamFoundedYear,
+  getTeamVideoLogo,
   type FixtureWithTeams,
   type StandingRow,
   type Team,
@@ -121,8 +123,10 @@ export function TeamCard({
   played?: number | string;
   titles?: number | string;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
   const primaryColor = team.team_color || "#D4A017";
   const foundedYear = getTeamFoundedYear(team);
+  const videoUrl = getTeamVideoLogo(team);
 
   const borderStyle = {
     borderColor: `${primaryColor}44`,
@@ -136,10 +140,12 @@ export function TeamCard({
       className="group relative flex rounded-2xl bg-zinc-950/90 border transition-all duration-500 flex-row items-center gap-3 p-3 sm:flex-col sm:items-center sm:p-6 sm:hover:-translate-y-2"
       style={borderStyle}
       onMouseEnter={(e) => {
+        setIsHovered(true);
         e.currentTarget.style.borderColor = primaryColor;
         e.currentTarget.style.boxShadow = `0 10px 30px ${primaryColor}22, inset 0 0 25px ${primaryColor}15`;
       }}
       onMouseLeave={(e) => {
+        setIsHovered(false);
         e.currentTarget.style.borderColor = `${primaryColor}44`;
         e.currentTarget.style.boxShadow = `0 4px 20px rgba(0,0,0,0.5), inset 0 0 20px ${primaryColor}08`;
       }}
@@ -164,6 +170,8 @@ export function TeamCard({
           shortName={team.short_name}
           color={team.team_color}
           logoUrl={team.logo_url}
+          videoUrl={videoUrl}
+          isHovered={isHovered}
           size="lg"
           className="relative size-14 sm:size-32 rounded-full border-2 sm:border-4 border-zinc-950 object-cover shadow-2xl transition-transform duration-500 group-hover:scale-105"
         />

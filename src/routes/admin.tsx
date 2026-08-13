@@ -19,6 +19,8 @@ import {
   sortStandings,
   getTeamFoundedYear,
   setTeamFoundedYear,
+  getTeamVideoLogo,
+  setTeamVideoLogo,
   getManualStandings,
   saveManualStandings,
   getTournamentAwards,
@@ -204,6 +206,8 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
   const [manager, setManager] = useState("");
   const [foundedYear, setFoundedYear] = useState<number>(new Date().getFullYear());
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoVideoUrl, setLogoVideoUrl] = useState("");
+  const [logoVideoFile, setLogoVideoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
 
@@ -216,6 +220,8 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
     setManager(team.manager_name || "");
     setFoundedYear(getTeamFoundedYear(team));
     setLogoFile(null);
+    setLogoVideoUrl(getTeamVideoLogo(team) || "");
+    setLogoVideoFile(null);
   }
 
   // Reset form states
@@ -227,6 +233,8 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
     setManager("");
     setFoundedYear(new Date().getFullYear());
     setLogoFile(null);
+    setLogoVideoUrl("");
+    setLogoVideoFile(null);
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -260,8 +268,28 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
         logoUrl = publicUrl;
       }
 
+      let videoUrl = logoVideoUrl.trim() || null;
+      if (logoVideoFile) {
+        const fileExt = logoVideoFile.name.split(".").pop();
+        const fileName = `vid_${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: videoUploadErr } = await supabase.storage
+          .from("logos")
+          .upload(filePath, logoVideoFile);
+
+        if (!videoUploadErr) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("logos")
+            .getPublicUrl(filePath);
+          videoUrl = publicUrl;
+        }
+      }
+
       if (editingTeam) {
         setTeamFoundedYear(editingTeam.id, foundedYear);
+        setTeamVideoLogo(editingTeam.id, videoUrl);
+
         let { error: updateError } = await supabase
           .from("teams")
           .update({
@@ -294,7 +322,10 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
         queryClient.invalidateQueries({ queryKey: ["teams-admin"] });
         queryClient.invalidateQueries({ queryKey: ["teams"] });
       } else {
-        await onCreate({ name, short_name: shortName, team_color: color, manager_name: manager, logo_url: logoUrl, founded_year: foundedYear });
+        const createdTeam = await onCreate({ name, short_name: shortName, team_color: color, manager_name: manager, logo_url: logoUrl, founded_year: foundedYear });
+        if (createdTeam?.id && videoUrl) {
+          setTeamVideoLogo(createdTeam.id, videoUrl);
+        }
       }
       resetForm();
     } catch (err: any) {
@@ -357,9 +388,29 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
           </div>
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground label-caps">
-              {editingTeam ? "Replace Team Logo" : "Team Logo File"}
+              {editingTeam ? "Replace Static Team Logo" : "Team Logo Image"}
             </label>
             <Input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} className="cursor-pointer" />
+          </div>
+          <div className="space-y-2 border-t border-border/50 pt-3">
+            <label className="text-xs text-muted-foreground label-caps flex items-center gap-1.5 text-primary">
+              🎬 Animated Logo Video (MP4)
+            </label>
+            <Input
+              type="file"
+              accept="video/mp4,video/webm"
+              onChange={(e) => setLogoVideoFile(e.target.files?.[0] || null)}
+              className="cursor-pointer text-xs"
+            />
+            <Input
+              placeholder="Or enter Video URL (e.g. /Video Project 16.mp4)"
+              value={logoVideoUrl}
+              onChange={(e) => setLogoVideoUrl(e.target.value)}
+              className="h-8 text-xs"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Plays animation when hovering over team card.
+            </p>
           </div>
           <div className="flex gap-2">
             <Button type="submit" className="flex-1" disabled={loading}>
