@@ -6,8 +6,6 @@ import { EmptyState, SectionHeading, StatCard } from "@/components/tff/ui";
 import { TeamLogo } from "@/components/tff/branding";
 import { fetchChampions, fetchTeams, fetchTournaments } from "@/lib/tff";
 
-import { TrophyRevealCard } from "@/components/tff/trophy-reveal-card";
-
 export const Route = createFileRoute("/champions")({
   head: () => ({
     meta: [
@@ -56,8 +54,6 @@ function ChampionsPage() {
         title="Hall of Champions"
         subtitle="Completed TFF tournaments are preserved forever. These are the sides that made history."
       />
-
-      <TrophyRevealCard />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Tournaments Won" value={list.length} />
