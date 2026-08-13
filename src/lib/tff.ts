@@ -95,6 +95,18 @@ export interface Champion {
   top_scorer: string | null;
 }
 
+export interface TournamentAward {
+  tournament_id: string;
+  best_goal_player?: string | null;
+  best_goal_team_id?: string | null;
+  best_goal_description?: string | null;
+  best_goal_video_url?: string | null;
+  top_scorer_team_id?: string | null;
+  best_defense_team_id?: string | null;
+  best_goalkeeper?: string | null;
+  custom_honors?: string | null;
+}
+
 export interface PlayerStat {
   id: string;
   tournament_id: string;
@@ -259,6 +271,28 @@ export function saveManualStandings(tournamentId: string, rows: StandingRow[]): 
     localStorage.setItem("tff_manual_standings", JSON.stringify(allMap));
   } catch (e) {
     console.error("Failed to save manual standings to localStorage", e);
+  }
+}
+
+export function getTournamentAwards(tournamentId: string): TournamentAward | null {
+  try {
+    const raw = localStorage.getItem("tff_tournament_awards");
+    if (!raw) return null;
+    const allMap: Record<string, TournamentAward> = JSON.parse(raw);
+    return allMap[tournamentId] || null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveTournamentAwards(tournamentId: string, award: TournamentAward): void {
+  try {
+    const raw = localStorage.getItem("tff_tournament_awards");
+    const allMap: Record<string, TournamentAward> = raw ? JSON.parse(raw) : {};
+    allMap[tournamentId] = award;
+    localStorage.setItem("tff_tournament_awards", JSON.stringify(allMap));
+  } catch (e) {
+    console.error("Failed to save tournament awards to localStorage", e);
   }
 }
 

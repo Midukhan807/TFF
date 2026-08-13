@@ -4,6 +4,7 @@ import { CalendarDays, Goal, Info, Shield, Trophy } from "lucide-react";
 
 import { TeamLogo } from "@/components/tff/branding";
 import { ChampionCard, KnockoutBracket } from "@/components/tff/trophy";
+import { TournamentAwardsSection } from "@/components/tff/awards";
 import {
   EmptyState,
   FixtureCard,
@@ -37,6 +38,7 @@ const TABS = [
   "teams",
   "knockout",
   "statistics",
+  "awards",
 ] as const;
 
 export const Route = createFileRoute("/tournament/$slug")({
@@ -350,6 +352,17 @@ function TournamentDetail() {
             ranked={ranked}
             teamNames={teamMap}
             players={players.data ?? []}
+          />
+        )}
+
+        {tab === "awards" && (
+          <TournamentAwardsSection
+            tournament={tournament}
+            completedFixtures={completed}
+            standings={standings.data ?? []}
+            teamsMap={teamMap}
+            champion={champion.data}
+            playerStats={players.data ?? []}
           />
         )}
       </div>

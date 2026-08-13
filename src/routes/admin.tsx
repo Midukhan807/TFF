@@ -21,6 +21,8 @@ import {
   setTeamFoundedYear,
   getManualStandings,
   saveManualStandings,
+  getTournamentAwards,
+  saveTournamentAwards,
   type RankingConfig,
 } from "@/lib/tff";
 
@@ -1918,6 +1920,12 @@ function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
   const [finalScore, setFinalScore] = useState("");
   const [mvp, setMvp] = useState("");
   const [topScorer, setTopScorer] = useState("");
+
+  // Goal of the Tournament State
+  const [bestGoalPlayer, setBestGoalPlayer] = useState("");
+  const [bestGoalTeamId, setBestGoalTeamId] = useState("");
+  const [bestGoalDescription, setBestGoalDescription] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   // Quick past tournament modal state
@@ -1938,7 +1946,7 @@ function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
     enabled: !!selectedTourneyId,
   });
 
-  // Load existing champion record when tournament changes
+  // Load existing champion & award record when tournament changes
   useEffect(() => {
     if (!selectedTourneyId) return;
     const existing = championsQuery.data?.find((c) => c.tournament_id === selectedTourneyId);
@@ -1952,6 +1960,15 @@ function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
     } else {
       setChampionId(""); setRunnerUpId(""); setThirdPlaceId("");
       setFinalScore(""); setMvp(""); setTopScorer("");
+    }
+
+    const award = getTournamentAwards(selectedTourneyId);
+    if (award) {
+      setBestGoalPlayer(award.best_goal_player ?? "");
+      setBestGoalTeamId(award.best_goal_team_id ?? "");
+      setBestGoalDescription(award.best_goal_description ?? "");
+    } else {
+      setBestGoalPlayer(""); setBestGoalTeamId(""); setBestGoalDescription("");
     }
   }, [selectedTourneyId, championsQuery.data]);
 
@@ -2052,7 +2069,16 @@ function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
         const { error } = await supabase.from("champions").insert([payload]);
         if (error) throw error;
       }
-      toast.success("Hall of Champions updated!");
+
+      // Save custom tournament awards (Best Goal of the Tournament)
+      saveTournamentAwards(selectedTourneyId, {
+        tournament_id: selectedTourneyId,
+        best_goal_player: bestGoalPlayer || null,
+        best_goal_team_id: bestGoalTeamId || null,
+        best_goal_description: bestGoalDescription || null,
+      });
+
+      toast.success("Hall of Champions & Tournament Awards updated!");
       queryClient.invalidateQueries({ queryKey: ["champions-admin"] });
       queryClient.invalidateQueries({ queryKey: ["champions"] });
       queryClient.invalidateQueries({ queryKey: ["all-standings"] });
@@ -2074,6 +2100,7 @@ function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
       toast.success("Champion record removed.");
       setChampionId(""); setRunnerUpId(""); setThirdPlaceId("");
       setFinalScore(""); setMvp(""); setTopScorer("");
+      setBestGoalPlayer(""); setBestGoalTeamId(""); setBestGoalDescription("");
       queryClient.invalidateQueries({ queryKey: ["champions-admin"] });
       queryClient.invalidateQueries({ queryKey: ["champions"] });
     } catch (err: any) {
@@ -2110,8 +2137,8 @@ function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
         <div className="flex items-center gap-3">
           <Crown className="size-6 text-primary" />
           <div>
-            <h2 className="text-xl font-bold font-display tracking-wider">Hall of Champions</h2>
-            <p className="text-sm text-muted-foreground">Record tournament winners for the Champions page</p>
+            <h2 className="text-xl font-bold font-display tracking-wider">Hall of Champions & Tournament Awards</h2>
+            <p className="text-sm text-muted-foreground">Record tournament winners and special awards (Goal of the Tournament, MVP)</p>
           </div>
         </div>
         <Button
@@ -2245,10 +2272,39 @@ function ChampionsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
                 />
               </div>
             </div>
+
+            {/* Special Award: Goal of the Tournament */}
+            <div className="panel p-4 space-y-3 bg-amber-500/5 border-amber-500/30">
+              <p className="text-xs font-semibold text-amber-400 label-caps uppercase tracking-wider">
+                🚀 Best Goal of the Tournament Award
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground uppercase font-semibold">Goalscorer Name</label>
+                  <Input
+                    placeholder="e.g. Arnold Exe"
+                    value={bestGoalPlayer}
+                    onChange={(e) => setBestGoalPlayer(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                {teamSelect("Goalscorer Team", bestGoalTeamId, setBestGoalTeamId, "🛡️")}
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground uppercase font-semibold">Goal Details / Description</label>
+                <Input
+                  placeholder="e.g. 89th min bicycle kick vs Johor FC in the Final"
+                  value={bestGoalDescription}
+                  onChange={(e) => setBestGoalDescription(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+            </div>
+
             <div className="flex items-center gap-3 pt-2">
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="animate-spin size-4 mr-2" />}
-                {existing ? "Update Champion Record" : "Save to Hall of Champions"}
+                {existing ? "Update Champion & Awards Record" : "Save Tournament Honors & Awards"}
               </Button>
               {existing && (
                 <Button type="button" variant="destructive" size="sm" onClick={handleDelete}>
