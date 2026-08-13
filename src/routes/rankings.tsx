@@ -8,6 +8,7 @@ import { EmptyState, SectionHeading } from "@/components/tff/ui";
 import {
   DEFAULT_RANKING,
   buildCareers,
+  fetchAllFixtures,
   fetchAllStandings,
   fetchChampions,
   fetchRankingConfig,
@@ -47,15 +48,19 @@ function RankingsPage() {
   const standings = useQuery({ queryKey: ["all-standings"], queryFn: fetchAllStandings });
   const champions = useQuery({ queryKey: ["champions"], queryFn: fetchChampions });
   const config = useQuery({ queryKey: ["ranking-config"], queryFn: fetchRankingConfig });
+  const fixtures = useQuery({ queryKey: ["all-fixtures"], queryFn: fetchAllFixtures });
 
   const ranking = config.data ?? DEFAULT_RANKING;
 
-  // Filter standings and champions by selected tournament if not "all"
+  // Filter standings, champions, and fixtures by selected tournament if not "all"
   const filteredStandings = (standings.data ?? []).filter((s) =>
     selectedTourneyId === "all" ? true : s.tournament_id === selectedTourneyId,
   );
   const filteredChampions = (champions.data ?? []).filter((c) =>
     selectedTourneyId === "all" ? true : c.tournament_id === selectedTourneyId,
+  );
+  const filteredFixtures = (fixtures.data ?? []).filter((f) =>
+    selectedTourneyId === "all" ? true : f.tournament_id === selectedTourneyId,
   );
 
   let careers = buildCareers(
@@ -63,6 +68,7 @@ function RankingsPage() {
     filteredStandings,
     filteredChampions,
     ranking,
+    filteredFixtures,
   );
 
   // If a specific tournament is selected, only show teams that participated (or all if 0)

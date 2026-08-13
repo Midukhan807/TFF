@@ -205,6 +205,16 @@ export async function fetchFixtures(tournamentId: string): Promise<FixtureWithTe
   return ((data ?? []) as any[]).map(normalizeFixture);
 }
 
+export async function fetchAllFixtures(): Promise<FixtureWithTeams[]> {
+  const { data, error } = await db
+    .from("fixtures")
+    .select(FIXTURE_SELECT)
+    .order("scheduled_date", { ascending: false });
+  if (error) throw error;
+  const normalized = ((data ?? []) as any[]).map(normalizeFixture);
+  return normalized.filter((f: any) => !f.tournament?.is_demo);
+}
+
 export async function fetchLatestResults(limit = 6): Promise<FixtureWithTeams[]> {
   const { data, error } = await db
     .from("fixtures")
@@ -384,6 +394,7 @@ export function buildCareers(
   standings: StandingRow[],
   champions: Champion[],
   config: RankingConfig,
+  fixtures?: FixtureWithTeams[],
 ): TeamCareer[] {
   const map = new Map<string, TeamCareer>();
   for (const team of teams) {
@@ -403,6 +414,7 @@ export function buildCareers(
 
   const teamTournaments = new Map<string, Set<string>>();
 
+  // 1. Group stage / League standings stats
   for (const row of standings) {
     const entry = map.get(row.team_id);
     if (!entry) continue;
@@ -422,6 +434,82 @@ export function buildCareers(
     entry.goalsAgainst += Number(row.goals_against) || 0;
   }
 
+  // 2. Knockout stage matches and stage reach points
+  if (fixtures && fixtures.length > 0) {
+    const teamKnockoutRounds = new Map<string, Set<string>>();
+
+    for (const f of fixtures) {
+      if (!f.home_team_id || !f.away_team_id) continue;
+      const isKnockout = f.stage === "knockout" || !!f.round;
+
+      // Track tournament participation
+      if (f.tournament_id) {
+        if (!teamTournaments.has(f.home_team_id)) teamTournaments.set(f.home_team_id, new Set());
+        if (!teamTournaments.has(f.away_team_id)) teamTournaments.set(f.away_team_id, new Set());
+        teamTournaments.get(f.home_team_id)!.add(f.tournament_id);
+        teamTournaments.get(f.away_team_id)!.add(f.tournament_id);
+      }
+
+      if (isKnockout && f.round && f.tournament_id) {
+        const roundName = f.round.trim();
+        const homeKey = `${f.home_team_id}_${f.tournament_id}`;
+        const awayKey = `${f.away_team_id}_${f.tournament_id}`;
+
+        if (!teamKnockoutRounds.has(homeKey)) teamKnockoutRounds.set(homeKey, new Set());
+        if (!teamKnockoutRounds.has(awayKey)) teamKnockoutRounds.set(awayKey, new Set());
+        teamKnockoutRounds.get(homeKey)!.add(roundName);
+        teamKnockoutRounds.get(awayKey)!.add(roundName);
+      }
+
+      // Record match results for completed knockout fixtures
+      if (isKnockout && f.status === "completed" && f.result) {
+        const homeEntry = map.get(f.home_team_id);
+        const awayEntry = map.get(f.away_team_id);
+        const hs = Number(f.result.home_score) || 0;
+        const as = Number(f.result.away_score) || 0;
+
+        if (homeEntry) {
+          homeEntry.played += 1;
+          homeEntry.goalsFor += hs;
+          homeEntry.goalsAgainst += as;
+          if (hs > as) homeEntry.wins += 1;
+          else if (hs < as) homeEntry.losses += 1;
+          else homeEntry.draws += 1;
+        }
+
+        if (awayEntry) {
+          awayEntry.played += 1;
+          awayEntry.goalsFor += as;
+          awayEntry.goalsAgainst += hs;
+          if (as > hs) awayEntry.wins += 1;
+          else if (as < hs) awayEntry.losses += 1;
+          else awayEntry.draws += 1;
+        }
+      }
+    }
+
+    // Award knockout stage ranking points (Semi Final / Quarter Final reach)
+    for (const [key, rounds] of teamKnockoutRounds.entries()) {
+      const [teamId, tournamentId] = key.split("_");
+      const entry = map.get(teamId);
+      if (!entry) continue;
+
+      const champRow = champions.find((c) => c.tournament_id === tournamentId);
+      const isWinner = champRow?.champion_team_id === teamId;
+      const isRunnerUp = champRow?.runner_up_team_id === teamId;
+      const isThird = champRow?.third_place_team_id === teamId;
+
+      if (!isWinner && !isRunnerUp && !isThird) {
+        if (rounds.has("Semi Final") || rounds.has("semi_final")) {
+          entry.rankingPoints += config.points_semi_final;
+        } else if (rounds.has("Quarter Final") || rounds.has("quarter_final")) {
+          entry.rankingPoints += config.points_quarter_final;
+        }
+      }
+    }
+  }
+
+  // 3. Participation points
   for (const [teamId, tourneySet] of teamTournaments.entries()) {
     const entry = map.get(teamId);
     if (entry) {
@@ -430,6 +518,7 @@ export function buildCareers(
     }
   }
 
+  // 4. Champion & Runner Up points
   for (const champ of champions) {
     const winner = champ.champion_team_id ? map.get(champ.champion_team_id) : null;
     if (winner) {
@@ -443,6 +532,6 @@ export function buildCareers(
   }
 
   return [...map.values()].sort(
-    (a, b) => b.rankingPoints - a.rankingPoints || b.titles - a.titles || b.wins - a.wins,
+    (a, b) => b.rankingPoints - a.rankingPoints || b.titles - a.titles || b.wins - a.wins || b.goalsFor - a.goalsFor,
   );
 }

@@ -63,6 +63,23 @@ function TeamProfile() {
     }),
     { played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, points: 0 },
   );
+
+  // Add stats from completed knockout stage matches
+  const knockoutCompleted = (fixtures.data ?? []).filter(
+    (f) => (f.stage === "knockout" || !!f.round) && f.status === "completed" && f.result,
+  );
+  for (const f of knockoutCompleted) {
+    totals.played += 1;
+    const isHome = f.home_team_id === teamId;
+    const myScore = isHome ? Number(f.result!.home_score) || 0 : Number(f.result!.away_score) || 0;
+    const oppScore = isHome ? Number(f.result!.away_score) || 0 : Number(f.result!.home_score) || 0;
+    totals.gf += myScore;
+    totals.ga += oppScore;
+    if (myScore > oppScore) totals.wins += 1;
+    else if (myScore < oppScore) totals.losses += 1;
+    else totals.draws += 1;
+  }
+
   const titles = (champions.data ?? []).filter((c) => c.champion_team_id === teamId).length;
   const tournamentMap = new Map((tournaments.data ?? []).map((t) => [t.id, t]));
   const recent = (fixtures.data ?? []).filter((f) => f.result).slice(0, 4);
