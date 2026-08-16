@@ -9,6 +9,7 @@ import {
   fetchTeamFixtures,
   fetchTeams,
   fetchTournaments,
+  getTeamFoundedYear,
   getTeamVideoLogo,
 } from "@/lib/tff";
 
@@ -99,11 +100,17 @@ function TeamProfile() {
             size="xl"
           />
           <div>
-            <p className="label-caps text-primary">TFF Team</p>
+            <div className="flex items-center gap-2">
+              <p className="label-caps text-primary">TFF Team</p>
+              <span className="text-[0.65rem] font-semibold text-primary/80 border border-primary/30 bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Est. {getTeamFoundedYear(team)}
+              </span>
+            </div>
             <h1 className="text-5xl uppercase">{team.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {team.short_name}
               {team.manager_name ? ` · Manager ${team.manager_name}` : ""}
+              {` · Founded ${getTeamFoundedYear(team)}`}
             </p>
           </div>
         </div>
