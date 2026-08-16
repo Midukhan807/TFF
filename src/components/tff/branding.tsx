@@ -25,6 +25,7 @@ export function TeamLogo({
   logoUrl,
   videoUrl,
   isHovered,
+  autoPlay = false,
   size = "md",
   className,
 }: {
@@ -34,6 +35,7 @@ export function TeamLogo({
   logoUrl?: string | null | undefined;
   videoUrl?: string | null | undefined;
   isHovered?: boolean;
+  autoPlay?: boolean;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }) {
@@ -45,14 +47,34 @@ export function TeamLogo({
   } as const;
 
   const [selfHover, setSelfHover] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const touchQuery = window.matchMedia("(hover: none)");
+      setIsTouchDevice(touchQuery.matches);
+
+      const handleQueryChange = (e: MediaQueryListEvent) => {
+        setIsTouchDevice(e.matches);
+      };
+      if (touchQuery.addEventListener) {
+        touchQuery.addEventListener("change", handleQueryChange);
+      }
+      return () => {
+        if (touchQuery.removeEventListener) {
+          touchQuery.removeEventListener("change", handleQueryChange);
+        }
+      };
+    }
+  }, []);
+
   const activeHover = isHovered ?? selfHover;
+  const shouldPlay = autoPlay || isTouchDevice || activeHover || size === "xl";
 
   useEffect(() => {
     if (videoRef.current && videoUrl) {
-      if (activeHover) {
-        videoRef.current.currentTime = 0;
+      if (shouldPlay) {
         const playPromise = videoRef.current.play();
         if (playPromise !== undefined) {
           playPromise.catch(() => {});
@@ -61,7 +83,7 @@ export function TeamLogo({
         videoRef.current.pause();
       }
     }
-  }, [activeHover, videoUrl]);
+  }, [shouldPlay, videoUrl]);
 
   const initials = (shortName ?? name).slice(0, 3).toUpperCase();
 
@@ -70,6 +92,8 @@ export function TeamLogo({
       className={cn("relative shrink-0 overflow-hidden rounded-xl", sizes[size], className)}
       onMouseEnter={() => setSelfHover(true)}
       onMouseLeave={() => setSelfHover(false)}
+      onTouchStart={() => setSelfHover(true)}
+      onTouchEnd={() => setSelfHover(false)}
     >
       {logoUrl ? (
         <img
@@ -98,9 +122,10 @@ export function TeamLogo({
           muted
           loop
           playsInline
+          autoPlay={shouldPlay}
           className={cn(
             "absolute inset-0 size-full object-cover transition-opacity duration-300 pointer-events-none",
-            activeHover ? "opacity-100 z-10" : "opacity-0 -z-10"
+            shouldPlay ? "opacity-100 z-10" : "opacity-0 -z-10"
           )}
         />
       )}
