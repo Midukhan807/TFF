@@ -9,6 +9,7 @@ import {
   fetchTeamFixtures,
   fetchTeams,
   fetchTournaments,
+  getTeamVideoLogo,
 } from "@/lib/tff";
 
 export const Route = createFileRoute("/team/$teamId")({
@@ -94,6 +95,7 @@ function TeamProfile() {
             shortName={team.short_name}
             color={team.team_color}
             logoUrl={team.logo_url}
+            videoUrl={getTeamVideoLogo(team)}
             size="xl"
           />
           <div>

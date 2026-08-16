@@ -52,17 +52,18 @@ function AdminPage() {
   // Mutations
   const createTeamMutation = useMutation({
     mutationFn: async (newTeam: any) => {
-      const { founded_year, ...rest } = newTeam;
+      const { founded_year, logo_video_url, ...rest } = newTeam;
       let res = await supabase.from("teams").insert([{ ...newTeam, is_demo: false }]).select();
-      if (res.error && res.error.message.includes("founded_year")) {
-        res = await supabase.from("teams").insert([{ ...rest, is_demo: false }]).select();
-        if (res.data?.[0]?.id && founded_year) {
-          setTeamFoundedYear(res.data[0].id, founded_year);
-        }
+      if (res.error && (res.error.message.includes("founded_year") || res.error.message.includes("logo_video_url"))) {
+        const fallbackObj: any = { ...newTeam, is_demo: false };
+        if (res.error.message.includes("founded_year")) delete fallbackObj.founded_year;
+        if (res.error.message.includes("logo_video_url")) delete fallbackObj.logo_video_url;
+        res = await supabase.from("teams").insert([fallbackObj]).select();
       }
       if (res.error) throw res.error;
-      if (res.data?.[0]?.id && founded_year) {
-        setTeamFoundedYear(res.data[0].id, founded_year);
+      if (res.data?.[0]?.id) {
+        if (founded_year) setTeamFoundedYear(res.data[0].id, founded_year);
+        if (logo_video_url) setTeamVideoLogo(res.data[0].id, logo_video_url);
       }
       return res.data;
     },
@@ -290,28 +291,30 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
         setTeamFoundedYear(editingTeam.id, foundedYear);
         setTeamVideoLogo(editingTeam.id, videoUrl);
 
+        let updatePayload: any = {
+          name,
+          short_name: shortName,
+          team_color: color,
+          manager_name: manager,
+          logo_url: logoUrl,
+          founded_year: foundedYear,
+          logo_video_url: videoUrl,
+        };
+
         let { error: updateError } = await supabase
           .from("teams")
-          .update({
-            name,
-            short_name: shortName,
-            team_color: color,
-            manager_name: manager,
-            logo_url: logoUrl,
-            founded_year: foundedYear,
-          })
+          .update(updatePayload)
           .eq("id", editingTeam.id);
 
-        if (updateError && updateError.message.includes("founded_year")) {
+        if (
+          updateError &&
+          (updateError.message.includes("founded_year") || updateError.message.includes("logo_video_url"))
+        ) {
+          if (updateError.message.includes("founded_year")) delete updatePayload.founded_year;
+          if (updateError.message.includes("logo_video_url")) delete updatePayload.logo_video_url;
           const { error: retryError } = await supabase
             .from("teams")
-            .update({
-              name,
-              short_name: shortName,
-              team_color: color,
-              manager_name: manager,
-              logo_url: logoUrl,
-            })
+            .update(updatePayload)
             .eq("id", editingTeam.id);
           if (retryError) throw retryError;
         } else if (updateError) {
@@ -322,7 +325,15 @@ function TeamTabContent({ teams, onCreate }: { teams: any[]; onCreate: any }) {
         queryClient.invalidateQueries({ queryKey: ["teams-admin"] });
         queryClient.invalidateQueries({ queryKey: ["teams"] });
       } else {
-        const createdTeam = await onCreate({ name, short_name: shortName, team_color: color, manager_name: manager, logo_url: logoUrl, founded_year: foundedYear });
+        const createdTeam = await onCreate({
+          name,
+          short_name: shortName,
+          team_color: color,
+          manager_name: manager,
+          logo_url: logoUrl,
+          founded_year: foundedYear,
+          logo_video_url: videoUrl,
+        });
         if (createdTeam?.id && videoUrl) {
           setTeamVideoLogo(createdTeam.id, videoUrl);
         }
