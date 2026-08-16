@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Gamepad2, Trophy, Users } from "lucide-react";
+import { Crown, Gamepad2, ShieldCheck, Trophy, Users } from "lucide-react";
 
 import { SectionHeading } from "@/components/tff/ui";
 import { Button } from "@/components/ui/button";
@@ -12,17 +12,17 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          "Triad Football Federation (TFF) is the official eFootball tournament organization running the Triad Champions League (TCL), structured leagues, cups, standings and global team rankings.",
+          "Triad Football Federation (TFF), founded by Frieza x pablo and Dante Jr, is the official eFootball tournament organization running the Triad Champions League (TCL), structured leagues, cups, standings and global team rankings.",
       },
       {
         name: "keywords",
         content:
-          "Triad Football Federation, TFF, Triad Champions League, TCL, eFootball organization, Triad Football, TFF eFootball",
+          "Triad Football Federation, TFF, Triad Champions League, TCL, eFootball organization, Frieza x pablo, Dante Jr, TFF Founders, Triad Football, TFF eFootball",
       },
       { property: "og:title", content: "About Triad Football Federation (TFF)" },
       {
         property: "og:description",
-        content: "Who we are, how Triad Football Federation (TFF) competitions work, and how to participate in the Triad Champions League.",
+        content: "Who we are, founded by Frieza x pablo and Dante Jr, how Triad Football Federation (TFF) competitions work, and how to participate in the Triad Champions League.",
       },
     ],
   }),
@@ -59,7 +59,7 @@ function AboutPage() {
 
       <div className="panel p-7 text-sm leading-relaxed text-muted-foreground">
         <p>
-          The Triad Football Federation runs structured eFootball competitions with real
+          The Triad Football Federation (TFF), founded by <strong className="text-foreground">Frieza x pablo</strong> and <strong className="text-foreground">Dante Jr</strong>, runs structured eFootball competitions with real
           consequences: verified results, transparent standings and permanent records. Every
           tournament we organize is archived in full, so a title won today still counts a decade
           from now.
@@ -70,7 +70,66 @@ function AboutPage() {
         </p>
       </div>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-3">
+      {/* Founders Section */}
+      <section className="mt-12">
+        <div className="flex items-center gap-2 mb-2">
+          <Crown className="size-5 text-primary" />
+          <h2 className="text-2xl font-display uppercase tracking-wide">TFF Founders</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-6">
+          The visionary leaders behind the founding and operation of the Triad Football Federation.
+        </p>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          {/* Founder 1 */}
+          <div className="panel relative overflow-hidden p-6 transition-all duration-300 hover:border-primary/50 group bg-zinc-950/80">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-25 transition-opacity">
+              <Crown className="size-24 text-primary" />
+            </div>
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-primary/10 border border-primary/40 text-primary font-display text-2xl shadow-xl">
+                FP
+              </div>
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-semibold bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
+                  <ShieldCheck className="size-3" /> Co-Founder
+                </span>
+                <h3 className="text-2xl font-display uppercase tracking-wide text-foreground mt-1">
+                  Frieza x pablo
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Founder & Federation Director
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Founder 2 */}
+          <div className="panel relative overflow-hidden p-6 transition-all duration-300 hover:border-primary/50 group bg-zinc-950/80">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-25 transition-opacity">
+              <Crown className="size-24 text-primary" />
+            </div>
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-primary/10 border border-primary/40 text-primary font-display text-2xl shadow-xl">
+                DJ
+              </div>
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-semibold bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
+                  <ShieldCheck className="size-3" /> Co-Founder
+                </span>
+                <h3 className="text-2xl font-display uppercase tracking-wide text-foreground mt-1">
+                  Dante Jr
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Founder & Operations Head
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="mt-12 grid gap-4 sm:grid-cols-3">
         {[
           { icon: <Gamepad2 className="size-5" />, label: "Structured Competitions", value: "Leagues, groups & cups" },
           { icon: <Users className="size-5" />, label: "Persistent Teams", value: "One identity, all-time record" },
@@ -89,7 +148,7 @@ function AboutPage() {
       </div>
 
       <section className="mt-14">
-        <h2 className="text-3xl">How TFF Tournaments Work</h2>
+        <h2 className="text-3xl font-display uppercase">How TFF Tournaments Work</h2>
         <ol className="mt-6 space-y-4">
           {STEPS.map((step, index) => (
             <li key={step.title} className="panel flex gap-5 p-5">
@@ -106,7 +165,7 @@ function AboutPage() {
       </section>
 
       <section className="panel mt-14 p-8 text-center">
-        <h2 className="text-3xl">Want to compete in TFF?</h2>
+        <h2 className="text-3xl font-display uppercase">Want to compete in TFF?</h2>
         <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
           Entries for TFF tournaments are handled by our organizers. Browse the upcoming
           competitions and reach out to be added to the next draw.
