@@ -174,6 +174,39 @@ export async function fetchTeams(): Promise<Team[]> {
   return (data ?? []) as Team[];
 }
 
+export function parseSeasonNumber(name: string): number | null {
+  if (!name) return null;
+  const match = name.match(/season\s*[-_]?\s*(\d+)/i) || name.match(/\bs(\d+)\b/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+export function sortTournaments<T extends { name: string; season_year?: number | null; start_date?: string | null; created_at?: string }>(
+  tournaments: T[]
+): T[] {
+  return [...tournaments].sort((a, b) => {
+    const seasonA = parseSeasonNumber(a.name);
+    const seasonB = parseSeasonNumber(b.name);
+
+    if (seasonA !== null && seasonB !== null) {
+      if (seasonA !== seasonB) return seasonB - seasonA;
+    } else if (seasonA !== null) {
+      return -1;
+    } else if (seasonB !== null) {
+      return 1;
+    }
+
+    const yearA = a.season_year ?? 0;
+    const yearB = b.season_year ?? 0;
+    if (yearA !== yearB) return yearB - yearA;
+
+    const dateA = a.start_date || a.created_at || "";
+    const dateB = b.start_date || b.created_at || "";
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export async function fetchTournaments(): Promise<any[]> {
   const { data, error } = await db
     .from("tournaments")
@@ -181,7 +214,7 @@ export async function fetchTournaments(): Promise<any[]> {
     .eq("is_demo", false)
     .order("start_date", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return sortTournaments(data ?? []);
 }
 
 export async function fetchTournamentBySlug(slug: string): Promise<Tournament | null> {
