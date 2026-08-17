@@ -163,7 +163,8 @@ function ChampionsPage() {
                         shortName={team.short_name}
                         color={team.team_color}
                         logoUrl={team.logo_url}
-                        videoUrl={getTeamVideoLogo(team)}
+                        videoUrl={isFirst ? getTeamVideoLogo(team) : null}
+                        autoPlay={isFirst}
                         size="lg"
                         className="shadow-lg"
                       />

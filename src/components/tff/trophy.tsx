@@ -76,8 +76,8 @@ export function ChampionCard({
                   shortName={winner.short_name}
                   color={winner.team_color}
                   logoUrl={winner.logo_url}
-                  videoUrl={getTeamVideoLogo(winner)}
-                  autoPlay={true}
+                  videoUrl={featured ? getTeamVideoLogo(winner) : null}
+                  autoPlay={featured ?? false}
                   size={featured ? "xl" : "lg"}
                   className="shadow-xl ring-2 ring-amber-500/30"
                 />
