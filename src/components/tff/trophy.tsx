@@ -23,64 +23,171 @@ export function ChampionCard({
   return (
     <div
       className={cn(
-        "panel relative overflow-hidden p-6",
-        featured && "border-primary/50 shadow-[var(--shadow-gold)]",
+        "group relative overflow-hidden rounded-2xl border transition-all duration-300",
+        featured
+          ? "border-amber-500/50 bg-gradient-to-b from-amber-950/40 via-zinc-950/90 to-zinc-950 shadow-[0_0_35px_rgba(245,158,11,0.18)]"
+          : "border-border/80 bg-zinc-950/80 hover:border-amber-500/40 hover:shadow-[0_0_25px_rgba(245,158,11,0.1)]"
       )}
     >
+      {/* Background ambient gold glow */}
       <div
-        className="pointer-events-none absolute -top-24 right-0 size-56 rounded-full opacity-25 blur-3xl"
-        style={{ background: "var(--gradient-gold)" }}
+        className={cn(
+          "pointer-events-none absolute -top-24 right-0 size-72 rounded-full blur-3xl transition-opacity duration-500",
+          featured ? "opacity-35" : "opacity-15 group-hover:opacity-25"
+        )}
+        style={{ background: "radial-gradient(circle, oklch(0.75 0.18 70) 0%, transparent 70%)" }}
       />
-      <div className="relative">
-        <div className="flex items-center gap-2 text-primary">
-          <Trophy className="size-4" />
-          <span className="label-caps">TFF Champion</span>
-        </div>
-        <Link
-          to="/tournament/$slug"
-          params={{ slug: tournament.slug }}
-          className="font-display mt-2 block text-xl hover:text-primary"
-        >
-          {tournament.name}
-        </Link>
 
-        <div className="mt-5 flex items-center gap-4">
-          <TeamLogo
-            name={winner?.name ?? "TBD"}
-            shortName={winner?.short_name}
-            color={winner?.team_color}
-            logoUrl={winner?.logo_url}
-            size={featured ? "xl" : "lg"}
-          />
+      {/* Top Banner Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-zinc-900/60 px-6 py-3.5 backdrop-blur-sm">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30">
+            <Crown className="size-4" />
+          </span>
           <div>
-            <p className={cn("font-display leading-none", featured ? "text-4xl" : "text-3xl")}>
-              {winner?.name ?? "To be decided"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {champion.final_score ?? "Final result recorded"}
-            </p>
+            <span className="text-[0.65rem] font-bold uppercase tracking-widest text-amber-400/90">
+              {featured ? "★ Reigning Champion" : "Official Champion"}
+            </span>
+            <span className="mx-2 text-zinc-600">•</span>
+            <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">
+              {tournament.season_year ? `Season ${tournament.season_year}` : "TFF Archive"}
+            </span>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-2 border-t border-border/70 pt-4 text-sm sm:grid-cols-2">
-          <p className="flex items-center gap-2 text-muted-foreground">
-            <Medal className="size-4 text-silver" /> Runner-up:{" "}
-            <span className="text-foreground">{runnerUp?.name ?? "—"}</span>
-          </p>
-          <p className="flex items-center gap-2 text-muted-foreground">
-            <Medal className="size-4 text-[oklch(0.65_0.11_60)]" /> Third:{" "}
-            <span className="text-foreground">{third?.name ?? "—"}</span>
-          </p>
-          {champion.mvp && (
-            <p className="text-muted-foreground">
-              MVP: <span className="text-foreground">{champion.mvp}</span>
-            </p>
-          )}
-          {champion.top_scorer && (
-            <p className="text-muted-foreground">
-              Top scorer: <span className="text-foreground">{champion.top_scorer}</span>
-            </p>
-          )}
+        <Link
+          to="/tournament/$slug"
+          params={{ slug: tournament.slug }}
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-amber-400"
+        >
+          <span>{tournament.name}</span>
+          <ArrowUpRight className="size-3.5" />
+        </Link>
+      </div>
+
+      <div className="p-6">
+        {/* Main Winner Showcase */}
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-5">
+            {winner ? (
+              <Link to="/team/$teamId" params={{ teamId: winner.id }} className="shrink-0 transition-transform duration-300 group-hover:scale-105">
+                <TeamLogo
+                  name={winner.name}
+                  shortName={winner.short_name}
+                  color={winner.team_color}
+                  logoUrl={winner.logo_url}
+                  videoUrl={getTeamVideoLogo(winner)}
+                  autoPlay={true}
+                  size={featured ? "xl" : "lg"}
+                  className="shadow-xl ring-2 ring-amber-500/30"
+                />
+              </Link>
+            ) : (
+              <div className="grid size-16 place-items-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                <Trophy className="size-8" />
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-amber-400">
+                  <Trophy className="size-3" /> Champion
+                </span>
+                {champion.final_score && (
+                  <span className="rounded-full bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 text-[0.65rem] font-mono text-zinc-300">
+                    Final: {champion.final_score}
+                  </span>
+                )}
+              </div>
+
+              {winner ? (
+                <Link
+                  to="/team/$teamId"
+                  params={{ teamId: winner.id }}
+                  className={cn(
+                    "font-display block uppercase tracking-wide text-foreground transition-colors hover:text-amber-400 mt-1",
+                    featured ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl"
+                  )}
+                >
+                  {winner.name}
+                </Link>
+              ) : (
+                <p className="font-display text-2xl uppercase tracking-wide text-muted-foreground mt-1">
+                  To Be Decided
+                </p>
+              )}
+
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Crowned Champion of <strong className="text-zinc-300">{tournament.name}</strong>
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Stats / Trophy Icon Badge */}
+          <div className="flex shrink-0 items-center justify-end gap-3 border-t border-border/40 pt-4 sm:border-t-0 sm:pt-0">
+            <div className="flex flex-col items-end text-right">
+              <span className="text-[0.65rem] font-bold uppercase tracking-wider text-amber-400/80">Title Record</span>
+              <span className="font-display text-2xl text-amber-400">#1 PLACE</span>
+            </div>
+            <div className="grid size-12 place-items-center rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-950/40 border border-amber-500/40 text-amber-400 shadow-inner">
+              <Trophy className="size-6" />
+            </div>
+          </div>
+        </div>
+
+        {/* Podium & Accolades Grid */}
+        <div className="mt-6 grid gap-3 border-t border-border/60 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Runner Up */}
+          <div className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
+            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-800 text-zinc-300 border border-zinc-700">
+              <Medal className="size-5 text-zinc-300" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-zinc-400">Runner-Up 🥈</p>
+              <p className="truncate text-xs font-semibold text-foreground">
+                {runnerUp ? runnerUp.name : "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Third Place */}
+          <div className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
+            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-950/50 text-amber-600 border border-amber-800/50">
+              <Medal className="size-5 text-amber-600" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-amber-600/90">3rd Place 🥉</p>
+              <p className="truncate text-xs font-semibold text-foreground">
+                {third ? third.name : "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Tournament MVP */}
+          <div className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
+            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30">
+              <Award className="size-5 text-amber-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-amber-400">Tournament MVP 🎖️</p>
+              <p className="truncate text-xs font-semibold text-foreground">
+                {champion.mvp || "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Top Scorer */}
+          <div className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
+            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30">
+              <Flame className="size-5 text-amber-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-amber-400">Top Scorer ⚽</p>
+              <p className="truncate text-xs font-semibold text-foreground">
+                {champion.top_scorer || "—"}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
