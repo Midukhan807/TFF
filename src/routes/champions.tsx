@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Crown, Medal, Trophy, Flame, Shield, Award, Sparkles, TrendingUp } from "lucide-react";
+import { Crown, Medal, Trophy, Flame, Shield, Award, Sparkles, TrendingUp, Loader2 } from "lucide-react";
 
 import { ChampionCard } from "@/components/tff/trophy";
 import { EmptyState } from "@/components/tff/ui";
@@ -36,6 +36,8 @@ function ChampionsPage() {
   const tournaments = useQuery({ queryKey: ["tournaments"], queryFn: fetchTournaments });
   const teams = useQuery({ queryKey: ["teams"], queryFn: fetchTeams });
 
+  const isLoading = champions.isLoading || tournaments.isLoading || teams.isLoading;
+
   const teamMap = new Map((teams.data ?? []).map((t) => [t.id, t]));
   const tournamentMap = new Map((tournaments.data ?? []).map((t) => [t.id, t]));
   const list = champions.data ?? [];
@@ -56,6 +58,14 @@ function ChampionsPage() {
   }
   const mostDecorated = [...titleCount.entries()].sort((a, b) => b[1] - a[1]);
   const topTeam = mostDecorated[0] ? teamMap.get(mostDecorated[0][0]) : null;
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-amber-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 space-y-12">
@@ -193,11 +203,11 @@ function ChampionsPage() {
                     <div className="h-1.5 flex-1 rounded-full bg-zinc-800 overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-amber-500 to-yellow-300 rounded-full"
-                        style={{ width: `${Math.min(100, (count / list.length) * 100)}%` }}
+                        style={{ width: `${list.length > 0 ? Math.min(100, (count / list.length) * 100) : 0}%` }}
                       />
                     </div>
                     <span className="text-[0.65rem] font-mono text-muted-foreground">
-                      {Math.round((count / list.length) * 100)}% of titles
+                      {list.length > 0 ? Math.round((count / list.length) * 100) : 0}% of titles
                     </span>
                   </div>
                 </Link>

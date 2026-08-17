@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Crown, Medal, Trophy } from "lucide-react";
+import { ArrowUpRight, Award, Crown, Flame, Medal, Trophy } from "lucide-react";
 
 import { TeamLogo } from "@/components/tff/branding";
 import { cn } from "@/lib/utils";
-import type { Champion, FixtureWithTeams, Team, Tournament } from "@/lib/tff";
+import { getTeamVideoLogo, type Champion, type FixtureWithTeams, type Team, type Tournament } from "@/lib/tff";
 
 export function ChampionCard({
   tournament,
