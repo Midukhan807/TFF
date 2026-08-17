@@ -1633,71 +1633,6 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
     }
   }
 
-  async function loadTcl5Preset() {
-    let targetId = selectedTourneyId;
-    let tcl5Tourney = tournaments.find(
-      (t) => t.name.toUpperCase().includes("TCL") && t.name.includes("5")
-    );
-
-    if (!tcl5Tourney) {
-      toast.info("Creating TCL SEASON 5 tournament...");
-      const slug = "tcl-season-5";
-      const { data: created, error } = await supabase.from("tournaments").insert([{
-        name: "TCL SEASON 5",
-        slug,
-        season_year: 2024,
-        status: "completed",
-        format: "single_round_robin",
-        points_win: 3, points_draw: 1, points_loss: 0,
-        organizer: "TFF",
-        is_demo: false,
-      }]).select().single();
-
-      if (error) {
-        toast.error("Failed to create TCL 5: " + error.message);
-        return;
-      }
-      tcl5Tourney = created;
-      await queryClient.invalidateQueries({ queryKey: ["tournaments-admin"] });
-      await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
-    }
-
-    targetId = tcl5Tourney.id;
-    setSelectedTourneyId(targetId);
-
-    const tcl5Preset = [
-      { name: "FC CHIMBAM", P: 9, W: 8, D: 1, L: 0, GF: 34, GA: 5, GD: 29, PTS: 25 },
-      { name: "JOHOR FC", P: 9, W: 6, D: 2, L: 1, GF: 22, GA: 10, GD: 12, PTS: 20 },
-      { name: "NIRMALA CF", P: 9, W: 6, D: 1, L: 2, GF: 23, GA: 13, GD: 10, PTS: 19 },
-      { name: "CRUSADER FC", P: 9, W: 6, D: 0, L: 3, GF: 21, GA: 14, GD: 7, PTS: 18 },
-      { name: "RAGNAR FC", P: 9, W: 5, D: 2, L: 2, GF: 22, GA: 13, GD: 9, PTS: 17 },
-      { name: "CHITHRAM FC", P: 9, W: 3, D: 1, L: 5, GF: 13, GA: 12, GD: 1, PTS: 10 },
-      { name: "SKULLX CITY", P: 9, W: 2, D: 2, L: 5, GF: 7, GA: 21, GD: -14, PTS: 8 },
-      { name: "RAVEN X", P: 9, W: 2, D: 1, L: 6, GF: 11, GA: 21, GD: -10, PTS: 7 },
-    ];
-
-    const presetRows = tcl5Preset.map((preset) => {
-      const matchTeam = teams.find(
-        (t) => t.name.trim().toUpperCase() === preset.name.toUpperCase()
-      );
-      return {
-        tournament_id: targetId,
-        team_id: matchTeam?.id ?? "",
-        played: preset.P,
-        wins: preset.W,
-        draws: preset.D,
-        losses: preset.L,
-        goals_for: preset.GF,
-        goals_against: preset.GA,
-        goal_difference: preset.GD,
-        points: preset.PTS,
-      };
-    });
-
-    setRows(presetRows);
-    toast.success("Loaded TCL 5 Standings! Click 'Save Standings Table' below to save.");
-  }
-
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedTourneyId) {
@@ -1764,15 +1699,6 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
             className="gap-1.5"
           >
             <Plus className="size-4" /> Add Past Tournament
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={loadTcl5Preset}
-            className="gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
-          >
-            ⚡ Load TCL 5 Standings
           </Button>
         </div>
       </div>
