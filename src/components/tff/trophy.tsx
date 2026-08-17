@@ -139,27 +139,63 @@ export function ChampionCard({
         <div className="mt-6 grid gap-3 border-t border-border/60 pt-5 sm:grid-cols-2 lg:grid-cols-4">
           {/* Runner Up */}
           <div className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
-            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-800 text-zinc-300 border border-zinc-700">
-              <Medal className="size-5 text-zinc-300" />
-            </div>
+            {runnerUp ? (
+              <Link to="/team/$teamId" params={{ teamId: runnerUp.id }} className="shrink-0">
+                <TeamLogo
+                  name={runnerUp.name}
+                  shortName={runnerUp.short_name}
+                  color={runnerUp.team_color}
+                  logoUrl={runnerUp.logo_url}
+                  autoPlay={false}
+                  size="sm"
+                  className="rounded-lg shadow-sm"
+                />
+              </Link>
+            ) : (
+              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-800 text-zinc-300 border border-zinc-700">
+                <Medal className="size-5 text-zinc-300" />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="text-[0.65rem] font-bold uppercase tracking-wider text-zinc-400">Runner-Up 🥈</p>
-              <p className="truncate text-xs font-semibold text-foreground">
-                {runnerUp ? runnerUp.name : "—"}
-              </p>
+              {runnerUp ? (
+                <Link to="/team/$teamId" params={{ teamId: runnerUp.id }} className="truncate block text-xs font-semibold text-foreground hover:text-amber-400 transition-colors">
+                  {runnerUp.name}
+                </Link>
+              ) : (
+                <p className="truncate text-xs font-semibold text-muted-foreground">—</p>
+              )}
             </div>
           </div>
 
           {/* Third Place */}
           <div className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
-            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-950/50 text-amber-600 border border-amber-800/50">
-              <Medal className="size-5 text-amber-600" />
-            </div>
+            {third ? (
+              <Link to="/team/$teamId" params={{ teamId: third.id }} className="shrink-0">
+                <TeamLogo
+                  name={third.name}
+                  shortName={third.short_name}
+                  color={third.team_color}
+                  logoUrl={third.logo_url}
+                  autoPlay={false}
+                  size="sm"
+                  className="rounded-lg shadow-sm"
+                />
+              </Link>
+            ) : (
+              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-950/50 text-amber-600 border border-amber-800/50">
+                <Medal className="size-5 text-amber-600" />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="text-[0.65rem] font-bold uppercase tracking-wider text-amber-600/90">3rd Place 🥉</p>
-              <p className="truncate text-xs font-semibold text-foreground">
-                {third ? third.name : "—"}
-              </p>
+              {third ? (
+                <Link to="/team/$teamId" params={{ teamId: third.id }} className="truncate block text-xs font-semibold text-foreground hover:text-amber-400 transition-colors">
+                  {third.name}
+                </Link>
+              ) : (
+                <p className="truncate text-xs font-semibold text-muted-foreground">—</p>
+              )}
             </div>
           </div>
 
