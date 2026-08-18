@@ -1391,12 +1391,6 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
             <Button onClick={generateSchedule} variant="outline" size="sm" className="gap-1">
               ⚽ Auto-Generate Round Robin
             </Button>
-            <Button onClick={() => generateTop4Knockout(false)} variant="secondary" size="sm" className="gap-1 border border-primary/40 text-primary">
-              🏆 Top 4 Knockout (Single Leg)
-            </Button>
-            <Button onClick={() => generateTop4Knockout(true)} variant="secondary" size="sm" className="gap-1 border border-amber-500/40 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20">
-              🔁 Top 4 Knockout (Two-Legged Home & Away)
-            </Button>
           </div>
         )}
       </div>
