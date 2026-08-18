@@ -233,7 +233,7 @@ export function MatchPredictionPoll({
               <h3 className="font-display text-lg uppercase">Enter Predictor Handle</h3>
             </div>
             <p className="text-xs text-muted-foreground">
-              Enter your name or gamer handle to save your predictions and compete on the 🎯 Prediction Leaderboard!
+              Enter your name or gamer handle to save your predictions and compete on the Prediction Leaderboard!
             </p>
             <form onSubmit={handleNameSubmit} className="space-y-4">
               <input
