@@ -16,6 +16,8 @@ import {
   fetchTournamentTeams,
   fetchRankingConfig,
   fetchChampions,
+  fetchPlayerStats,
+  calculateTournamentMVP,
   sortStandings,
   getTeamFoundedYear,
   setTeamFoundedYear,
@@ -515,6 +517,12 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
     enabled: !!editingChampionsTourney,
   });
 
+  const tourneyPlayerStatsQuery = useQuery({
+    queryKey: ["player-stats-admin", editingChampionsTourney?.id],
+    queryFn: () => fetchPlayerStats(editingChampionsTourney.id),
+    enabled: !!editingChampionsTourney,
+  });
+
   useEffect(() => {
     if (championsQuery.data) {
       setChampionTeamId(championsQuery.data.champion_team_id || "");
@@ -901,7 +909,25 @@ function TournamentTabContent({ tournaments, teams, onCreate }: { tournaments: a
                   <Input value={finalScore} onChange={(e) => setFinalScore(e.target.value)} placeholder="e.g. 2-1 or 3-2 (PEN)" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground label-caps">Tournament MVP (Player Name)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-muted-foreground label-caps">Tournament MVP (Player Name)</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const stats = tourneyPlayerStatsQuery.data || [];
+                        const result = calculateTournamentMVP(stats, championTeamId);
+                        if (result) {
+                          setMvp(result.player.player_name);
+                          toast.success(`Auto-calculated MVP: ${result.player.player_name} (Score: ${result.score})!`);
+                        } else {
+                          toast.info("No player statistics recorded for this tournament yet.");
+                        }
+                      }}
+                      className="text-[10px] text-purple-400 font-bold uppercase hover:underline flex items-center gap-1"
+                    >
+                      ⚡ Auto-Calculate MVP
+                    </button>
+                  </div>
                   <Input value={mvp} onChange={(e) => setMvp(e.target.value)} placeholder="e.g. Messi" />
                 </div>
                 <div className="space-y-2">

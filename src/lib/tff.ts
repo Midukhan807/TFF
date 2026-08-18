@@ -728,3 +728,38 @@ export function buildCareers(
     (a, b) => b.rankingPoints - a.rankingPoints || b.titles - a.titles || b.wins - a.wins || b.goalsFor - a.goalsFor,
   );
 }
+
+export function calculateTournamentMVP(
+  playerStats: PlayerStat[],
+  championTeamId?: string | null,
+): { player: PlayerStat; score: number } | null {
+  if (!playerStats || playerStats.length === 0) return null;
+
+  const rankedPlayers = [...playerStats].map((p) => {
+    // Weighted Performance Score formula:
+    // (MOTM * 10) + (Goals * 3) + (Assists * 2) - (Yellow Cards * 1) - (Red Cards * 3)
+    let rawScore =
+      (p.motm || 0) * 10 +
+      (p.goals || 0) * 3 +
+      (p.assists || 0) * 2 -
+      (p.yellow_cards || 0) * 1 -
+      (p.red_cards || 0) * 3;
+
+    // 1.2x Champion team multiplier
+    if (championTeamId && p.team_id && p.team_id === championTeamId) {
+      rawScore = rawScore * 1.2;
+    }
+
+    return { player: p, score: Math.round(rawScore * 10) / 10 };
+  });
+
+  rankedPlayers.sort(
+    (a, b) =>
+      b.score - a.score ||
+      (b.player.goals || 0) - (a.player.goals || 0) ||
+      (b.player.motm || 0) - (a.player.motm || 0),
+  );
+
+  return rankedPlayers[0] ?? null;
+}
+

@@ -1,6 +1,7 @@
 import { Award, Flame, Goal, Shield, Sparkles, Trophy, User } from "lucide-react";
 import { TeamLogo } from "@/components/tff/branding";
 import {
+  calculateTournamentMVP,
   getTournamentAwards,
   sortStandings,
   type Champion,
@@ -51,12 +52,13 @@ export function TournamentAwardsSection({
       ((a.result?.home_score ?? 0) + (a.result?.away_score ?? 0)),
   )[0];
 
-  // 4. Player Stats Awards (Top Scorer & MVP)
-  const topPlayerStat = [...playerStats].sort((a, b) => b.goals - a.goals)[0];
-  const mvpStat = [...playerStats].sort((a, b) => b.motm - a.motm)[0];
+  // 4. Auto-Calculated MVP (Option 1 Weighted Formula)
+  const autoMVP = calculateTournamentMVP(playerStats, champion?.champion_team_id);
+  const mvpTeam = autoMVP?.player.team_id ? teamsMap.get(autoMVP.player.team_id) : null;
 
+  const topPlayerStat = [...playerStats].sort((a, b) => b.goals - a.goals)[0];
   const topScorerName = customAward?.top_scorer_player || topPlayerStat?.player_name || champion?.top_scorer || "TBD";
-  const mvpName = champion?.mvp || mvpStat?.player_name || "TBD";
+  const mvpName = champion?.mvp || autoMVP?.player.player_name || "TBD";
 
   return (
     <div className="space-y-8">
@@ -80,6 +82,55 @@ export function TournamentAwardsSection({
 
       {/* Grid of Award Cards */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {/* 0. TOURNAMENT MVP */}
+        <div className="panel relative overflow-hidden p-6 border-purple-500/40 bg-gradient-to-b from-purple-500/10 via-purple-500/5 to-transparent sm:col-span-2 lg:col-span-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-purple-400">
+              <Award className="size-5" />
+              <span className="label-caps font-semibold">Tournament MVP (Most Valuable Player)</span>
+            </div>
+            <span className="text-xs px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-display uppercase tracking-wider font-bold">
+              👑 TOP PERFORMER
+            </span>
+          </div>
+
+          <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <TeamLogo
+                name={mvpTeam?.name ?? "TFF"}
+                shortName={mvpTeam?.short_name}
+                color={mvpTeam?.team_color}
+                logoUrl={mvpTeam?.logo_url}
+                size="xl"
+              />
+              <div>
+                <p className="font-display text-3xl sm:text-4xl text-white font-bold tracking-wide">
+                  {mvpName}
+                </p>
+                <p className="text-sm text-purple-400 font-semibold mt-0.5">
+                  {mvpTeam?.name ? mvpTeam.name : "Triad Football Federation"}
+                </p>
+              </div>
+            </div>
+
+            {autoMVP && (
+              <div className="flex items-center gap-3 bg-zinc-950/80 p-3 rounded-xl border border-purple-500/30">
+                <div className="text-center px-3 border-r border-border/60">
+                  <p className="font-display text-2xl text-purple-400 font-bold">{autoMVP.score}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">MVP Rating</p>
+                </div>
+                <div className="text-xs space-y-0.5 text-zinc-300">
+                  <p>⭐ <b>{autoMVP.player.motm || 0}</b> MOTM Awards</p>
+                  <p>⚽ <b>{autoMVP.player.goals || 0}</b> Goals · 🎯 <b>{autoMVP.player.assists || 0}</b> Assists</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <p className="mt-4 text-xs text-muted-foreground bg-zinc-900/60 p-3 rounded-lg border border-border/40">
+            Calculated automatically using weighted performance metrics: MOTM awards (10pts), Goals (3pts), Assists (2pts), Fair Play cards (-1pt YC / -3pts RC), plus Champion team multiplier bonus.
+          </p>
+        </div>
         {/* 1. BEST GOAL OF THE TOURNAMENT */}
         <div className="panel relative overflow-hidden p-6 border-amber-500/40 bg-gradient-to-b from-amber-500/5 to-transparent">
           <div className="flex items-center justify-between">
