@@ -1236,6 +1236,28 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
     }
   }
 
+  async function handleResetScore() {
+    if (!selectedFixture) return;
+    if (!confirm("Reset this match score? It will mark the match as scheduled/unplayed again.")) return;
+    try {
+      await supabase.from("results").delete().eq("fixture_id", selectedFixture.id);
+      const { error: fixError } = await supabase
+        .from("fixtures")
+        .update({ status: "scheduled" })
+        .eq("id", selectedFixture.id);
+      if (fixError) throw fixError;
+
+      toast.success("Match reset to scheduled (unplayed)!");
+      setSelectedFixture(null);
+      queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
+      queryClient.invalidateQueries({ queryKey: ["all-standings"] });
+      queryClient.invalidateQueries({ queryKey: ["standings"] });
+      queryClient.invalidateQueries({ queryKey: ["standings-admin", selectedTourneyId] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reset match.");
+    }
+  }
+
   const allFixtures = fixturesQuery.data || [];
   const leagueFixtures = allFixtures.filter((f) => f.stage !== "knockout" && !f.round);
   const knockoutFixtures = allFixtures.filter((f) => f.stage === "knockout" || !!f.round);
@@ -1550,9 +1572,28 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-1">
-                  <Button type="submit" className="flex-1">Save Score & Cards</Button>
-                  <Button type="button" variant="ghost" onClick={() => setSelectedFixture(null)}>Cancel</Button>
+                <div className="flex flex-col gap-2 pt-1">
+                  <Button type="submit" className="w-full">Save Score & Cards</Button>
+                  <div className="flex gap-2">
+                    {selectedFixture.status === "completed" && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 text-destructive border-destructive/40 hover:bg-destructive/10"
+                        onClick={handleResetScore}
+                      >
+                        Reset Match (Unplay)
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className={selectedFixture.status === "completed" ? "" : "w-full"}
+                      onClick={() => setSelectedFixture(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               </form>
             </div>
