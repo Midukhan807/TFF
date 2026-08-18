@@ -3,7 +3,7 @@ import { ArrowUpRight, Award, Crown, Flame, Medal, Trophy } from "lucide-react";
 
 import { TeamLogo } from "@/components/tff/branding";
 import { cn } from "@/lib/utils";
-import { getTeamVideoLogo, type Champion, type FixtureWithTeams, type Team, type Tournament } from "@/lib/tff";
+import { getTeamVideoLogo, getMatchWinner, parseResultPenalties, type Champion, type FixtureWithTeams, type Team, type Tournament } from "@/lib/tff";
 
 export function ChampionCard({
   tournament,
@@ -230,30 +230,117 @@ export function ChampionCard({
   );
 }
 
-const ROUND_ORDER = ["Round of 16", "Quarter Final", "Semi Final", "Third Place", "Final"];
+const STAGE_STEPS = [
+  { key: "Round of 16", label: "Round of 16" },
+  { key: "Quarter Final", label: "Quarter Final" },
+  { key: "Semi Final", label: "Semi Final" },
+  { key: "Third Place", label: "3rd Place Match" },
+  { key: "Final", label: "Final 🏆" },
+];
 
 export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) {
-  const rounds = ROUND_ORDER.filter((round) => fixtures.some((f) => f.round === round));
-  if (!rounds.length) return null;
+  const activeSteps = STAGE_STEPS.filter((step) =>
+    fixtures.some((f) => f.round && f.round.startsWith(step.key))
+  );
+
+  if (!activeSteps.length) return null;
 
   return (
     <div className="overflow-x-auto pb-2">
       <div className="flex min-w-max gap-6">
-        {rounds.map((round) => (
-          <div key={round} className="w-72 shrink-0">
-            <p className="label-caps mb-3 text-primary">{round}</p>
-            <div className="flex flex-col justify-around gap-4">
-              {fixtures
-                .filter((f) => f.round === round)
-                .map((fixture) => {
-                  const result = fixture.result;
-                  const homeWon = result ? result.home_score > result.away_score : false;
-                  const awayWon = result ? result.away_score > result.home_score : false;
+        {activeSteps.map((step) => {
+          const stepFixtures = fixtures.filter((f) => f.round && f.round.startsWith(step.key));
+          const leg1List = stepFixtures.filter((f) => !f.round?.includes("2nd Leg"));
+
+          return (
+            <div key={step.key} className="w-80 shrink-0">
+              <p className="label-caps mb-3 text-primary font-bold">{step.label}</p>
+              <div className="flex flex-col justify-around gap-4">
+                {leg1List.map((f1) => {
+                  const isTwoLegged = f1.round?.includes("1st Leg");
+                  const f2 = isTwoLegged
+                    ? stepFixtures.find(
+                        (f) =>
+                          f.round?.includes("2nd Leg") &&
+                          ((f.home_team_id === f1.away_team_id && f.away_team_id === f1.home_team_id) ||
+                            f.bracket_slot === (f1.bracket_slot ? f1.bracket_slot + 1 : -1))
+                      )
+                    : null;
+
+                  if (isTwoLegged && f2) {
+                    const agg = computeTwoLegAggregate(f1, f2);
+                    const homeWon = agg.winnerTeamId === f1.home_team_id;
+                    const awayWon = agg.winnerTeamId === f1.away_team_id;
+
+                    const res1 = f1.result;
+                    const res2 = f2.result;
+
+                    return (
+                      <div key={f1.id} className="panel p-3.5 space-y-2 border-primary/30 bg-card/60">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground border-b border-border/40 pb-1">
+                          <span className="text-primary">2-Legged Tie (Aggregate)</span>
+                          {agg.isCompleted && (
+                            <span className="text-amber-400 font-extrabold">
+                              Agg: {agg.totalGoalsA} - {agg.totalGoalsB}
+                            </span>
+                          )}
+                        </div>
+
+                        {[
+                          { team: f1.home, scoreL1: res1?.home_score, scoreL2: res2?.away_score, total: agg.totalGoalsA, pen: agg.penA, won: homeWon },
+                          { team: f1.away, scoreL1: res1?.away_score, scoreL2: res2?.home_score, total: agg.totalGoalsB, pen: agg.penB, won: awayWon },
+                        ].map((side, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors",
+                              side.won && "bg-primary/20 border border-primary/40",
+                            )}
+                          >
+                            <TeamLogo
+                              name={side.team?.name ?? "TBD"}
+                              shortName={side.team?.short_name}
+                              color={side.team?.team_color}
+                              logoUrl={side.team?.logo_url}
+                              size="sm"
+                            />
+                            <span
+                              className={cn(
+                                "flex-1 truncate text-sm",
+                                side.won ? "font-bold text-primary" : "text-muted-foreground",
+                              )}
+                            >
+                              {side.team?.name ?? "TBD"}
+                            </span>
+                            <div className="text-right flex items-center gap-1.5 text-xs">
+                              <span className="text-muted-foreground font-mono">
+                                ({side.scoreL1 ?? "-"}-{side.scoreL2 ?? "-"})
+                              </span>
+                              <span className="font-display text-base font-bold text-foreground">
+                                {agg.isCompleted ? side.total : "-"}
+                              </span>
+                              {agg.isPenalties && side.pen !== null && side.pen !== undefined && (
+                                <span className="text-[10px] font-extrabold text-amber-400">({side.pen}p)</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  const result = f1.result;
+                  const { winnerTeamId, isPenalties } = getMatchWinner(f1);
+                  const { homePen, awayPen } = parseResultPenalties(result);
+
+                  const homeWon = winnerTeamId === f1.home_team_id;
+                  const awayWon = winnerTeamId === f1.away_team_id;
+
                   return (
-                    <div key={fixture.id} className="panel p-3">
+                    <div key={f1.id} className="panel p-3">
                       {[
-                        { team: fixture.home, score: result?.home_score, won: homeWon },
-                        { team: fixture.away, score: result?.away_score, won: awayWon },
+                        { team: f1.home, score: result?.home_score, pen: homePen, won: homeWon },
+                        { team: f1.away, score: result?.away_score, pen: awayPen, won: awayWon },
                       ].map((side, i) => (
                         <div
                           key={i}
@@ -277,26 +364,46 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
                           >
                             {side.team?.name ?? "TBD"}
                           </span>
-                          <span className="font-display text-lg">{side.score ?? "-"}</span>
+                          <div className="text-right">
+                            <span className="font-display text-lg">{side.score ?? "-"}</span>
+                            {isPenalties && side.pen !== null && side.pen !== undefined && (
+                              <span className="ml-1 text-[11px] font-bold text-amber-400">({side.pen}p)</span>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
                   );
                 })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div className="grid w-64 shrink-0 place-items-center">
           <div className="panel flex flex-col items-center gap-2 p-6 text-center">
-            <Crown className="size-8 text-primary" />
+            <Crown className="size-8 text-primary animate-pulse" />
             <p className="label-caps text-muted-foreground">Champion</p>
-            <p className="font-display text-2xl">
+            <p className="font-display text-2xl font-black text-primary">
               {(() => {
-                const final = fixtures.find((f) => f.round === "Final");
-                if (!final?.result) return "?";
-                return final.result.home_score > final.result.away_score
-                  ? (final.home?.name ?? "?")
-                  : (final.away?.name ?? "?");
+                const finalStep = fixtures.filter((f) => f.round && f.round.startsWith("Final"));
+                const finalLeg1 = finalStep.find((f) => !f.round?.includes("2nd Leg"));
+                const finalLeg2 = finalStep.find((f) => f.round?.includes("2nd Leg"));
+
+                if (finalLeg1?.round?.includes("1st Leg") && finalLeg2) {
+                  const agg = computeTwoLegAggregate(finalLeg1, finalLeg2);
+                  if (!agg.winnerTeamId) return "?";
+                  const championTeam = fixtures.find((f) => f.home_team_id === agg.winnerTeamId || f.away_team_id === agg.winnerTeamId);
+                  return (
+                    (championTeam?.home_team_id === agg.winnerTeamId ? championTeam.home?.name : championTeam?.away?.name) ?? "?"
+                  );
+                }
+
+                if (!finalLeg1?.result) return "?";
+                const { winnerTeamId } = getMatchWinner(finalLeg1);
+                if (!winnerTeamId) return "?";
+                return winnerTeamId === finalLeg1.home_team_id
+                  ? (finalLeg1.home?.name ?? "?")
+                  : (finalLeg1.away?.name ?? "?");
               })()}
             </p>
           </div>

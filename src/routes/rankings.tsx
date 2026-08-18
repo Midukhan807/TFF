@@ -136,8 +136,6 @@ function RankingsPage() {
                 <th className="px-4 py-3 text-center">L</th>
                 <th className="px-4 py-3 text-center">GF</th>
                 <th className="px-4 py-3 text-center">GA</th>
-                <th className="px-3 py-3 text-center text-yellow-400" title="Yellow Cards">YC</th>
-                <th className="px-3 py-3 text-center text-red-400" title="Red Cards">RC</th>
                 <th className="px-4 py-3 text-center">Win %</th>
                 <th className="px-4 py-3 text-right">Rating</th>
               </tr>
@@ -180,18 +178,6 @@ function RankingsPage() {
                   <td className="px-4 py-3 text-center">{career.losses}</td>
                   <td className="px-4 py-3 text-center">{career.goalsFor}</td>
                   <td className="px-4 py-3 text-center">{career.goalsAgainst}</td>
-                  <td className="px-3 py-3 text-center">
-                    <span className="inline-flex items-center justify-center gap-1 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs font-semibold text-yellow-400 border border-yellow-500/20">
-                      <span className="inline-block size-2 rounded-sm bg-yellow-400" />
-                      {career.yellowCards}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-center">
-                    <span className="inline-flex items-center justify-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 text-xs font-semibold text-red-400 border border-red-500/20">
-                      <span className="inline-block size-2 rounded-sm bg-red-500" />
-                      {career.redCards}
-                    </span>
-                  </td>
                   <td className="px-4 py-3 text-center">
                     {career.played ? Math.round((career.wins / career.played) * 100) : 0}%
                   </td>

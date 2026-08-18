@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Swords } from "lucide-react";
 
 import { TeamLogo } from "@/components/tff/branding";
 import { EmptyState, ResultCard, StatCard } from "@/components/tff/ui";
@@ -216,6 +217,54 @@ function TeamProfile() {
           ) : (
             <EmptyState title="No results yet" description="No results have been recorded yet." />
           )}
+        </section>
+
+        <section className="panel p-6 border-primary/30 bg-card/60">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-2xl font-extrabold uppercase tracking-wide flex items-center gap-2">
+                <Swords className="size-6 text-primary" /> Head-to-Head Rivalries
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Compare {team.name} head-to-head against any rival team in TFF.
+              </p>
+            </div>
+            <Link
+              to="/h2h"
+              search={{ team1: team.id }}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90"
+            >
+              Open Full H2H Predictor <Swords className="size-4" />
+            </Link>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(teams.data ?? [])
+              .filter((t) => t.id !== team.id)
+              .slice(0, 8)
+              .map((opp) => (
+                <Link
+                  key={opp.id}
+                  to="/h2h"
+                  search={{ team1: team.id, team2: opp.id }}
+                  className="flex items-center gap-3 rounded-lg border border-border/70 bg-card/40 p-3 transition-all hover:border-primary/50 hover:bg-primary/10"
+                >
+                  <TeamLogo
+                    name={opp.name}
+                    shortName={opp.short_name}
+                    color={opp.team_color}
+                    logoUrl={opp.logo_url}
+                    size="sm"
+                  />
+                  <div className="overflow-hidden">
+                    <p className="text-sm font-bold truncate">{opp.name}</p>
+                    <p className="text-xs text-primary font-semibold flex items-center gap-1">
+                      Compare H2H <Swords className="size-3" />
+                    </p>
+                  </div>
+                </Link>
+              ))}
+          </div>
         </section>
       </div>
     </div>

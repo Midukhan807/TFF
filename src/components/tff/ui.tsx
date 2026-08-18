@@ -10,6 +10,8 @@ import {
   formatTime,
   getTeamFoundedYear,
   getTeamVideoLogo,
+  getMatchWinner,
+  parseResultPenalties,
   type FixtureWithTeams,
   type StandingRow,
   type Team,
@@ -414,8 +416,12 @@ export function FixtureCard({ fixture }: { fixture: FixtureWithTeams }) {
 
 export function ResultCard({ fixture }: { fixture: FixtureWithTeams }) {
   const result = fixture.result;
-  const homeWin = result ? result.home_score > result.away_score : false;
-  const awayWin = result ? result.away_score > result.home_score : false;
+  const { winnerTeamId, isPenalties } = getMatchWinner(fixture);
+  const { homePen, awayPen } = parseResultPenalties(result);
+
+  const homeWin = winnerTeamId === fixture.home_team_id;
+  const awayWin = winnerTeamId === fixture.away_team_id;
+
   return (
     <div className="panel p-4">
       <div className="flex items-center justify-between gap-2">
@@ -425,8 +431,15 @@ export function ResultCard({ fixture }: { fixture: FixtureWithTeams }) {
       <p className="mt-1 text-xs text-muted-foreground">{fixture.round ?? ""}</p>
       <div className="mt-4 flex items-center justify-between gap-3">
         <TeamSide team={fixture.home} align="left" dim={awayWin} />
-        <div className="font-display shrink-0 rounded-lg border border-border bg-secondary px-3 py-1 text-2xl">
-          {result ? `${result.home_score} — ${result.away_score}` : "—"}
+        <div className="flex flex-col items-center shrink-0">
+          <div className="font-display rounded-lg border border-border bg-secondary px-3 py-1 text-2xl">
+            {result ? `${result.home_score} — ${result.away_score}` : "—"}
+          </div>
+          {isPenalties && homePen !== null && awayPen !== null && (
+            <span className="mt-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-400 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 rounded-full">
+              ({homePen} - {awayPen} pen)
+            </span>
+          )}
         </div>
         <TeamSide team={fixture.away} align="right" dim={homeWin} />
       </div>

@@ -27,6 +27,8 @@ import {
   saveManualStandings,
   getTournamentAwards,
   saveTournamentAwards,
+  parseResultPenalties,
+  getMatchWinner,
   type RankingConfig,
 } from "@/lib/tff";
 
@@ -972,6 +974,9 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
   const [selectedFixture, setSelectedFixture] = useState<any>(null);
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
+  const [homePenalties, setHomePenalties] = useState(0);
+  const [awayPenalties, setAwayPenalties] = useState(0);
+  const [enablePenalties, setEnablePenalties] = useState(false);
   const [homeYellow, setHomeYellow] = useState(0);
   const [awayYellow, setAwayYellow] = useState(0);
   const [homeRed, setHomeRed] = useState(0);
@@ -1033,8 +1038,8 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
     }
   }
 
-  // Generate Top 4 Knockout Bracket (Semi Finals, 3rd Place & Final)
-  async function generateTop4Knockout() {
+  // Generate Top 4 Knockout Bracket (Single Leg or Two-Legged Home & Away)
+  async function generateTop4Knockout(isTwoLegged = false) {
     if (!selectedTourneyId || !tourneyTeamsQuery.data?.length) return;
     const teams = tourneyTeamsQuery.data;
     if (teams.length < 2) {
@@ -1043,7 +1048,7 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
     }
 
     try {
-      toast.info("Generating Top 4 Knockout Bracket...");
+      toast.info(`Generating Top 4 Knockout Bracket (${isTwoLegged ? "Two-Legged Aggregate" : "Single Leg"})...`);
       const standingsData = await fetchStandings(selectedTourneyId).catch(() => []);
       const sortedTeams = standingsData.length > 0
         ? standingsData.map((s: any) => teams.find((t: any) => t.id === s.team_id)).filter(Boolean)
@@ -1054,53 +1059,129 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
       const team3 = sortedTeams[2] || teams[2] || null;
       const team4 = sortedTeams[3] || teams[3] || null;
 
-      const knockoutFixtures = [
-        {
-          tournament_id: selectedTourneyId,
-          home_team_id: team1?.id || null,
-          away_team_id: team4?.id || null,
-          stage: "knockout",
-          round: "Semi Final",
-          bracket_slot: 1,
-          status: "scheduled",
-        },
-        {
-          tournament_id: selectedTourneyId,
-          home_team_id: team2?.id || null,
-          away_team_id: team3?.id || null,
-          stage: "knockout",
-          round: "Semi Final",
-          bracket_slot: 2,
-          status: "scheduled",
-        },
-        {
-          tournament_id: selectedTourneyId,
-          home_team_id: null,
-          away_team_id: null,
-          stage: "knockout",
-          round: "Third Place",
-          bracket_slot: 3,
-          status: "scheduled",
-        },
-        {
-          tournament_id: selectedTourneyId,
-          home_team_id: null,
-          away_team_id: null,
-          stage: "knockout",
-          round: "Final",
-          bracket_slot: 4,
-          status: "scheduled",
-        },
-      ];
+      let knockoutFixtures: any[] = [];
+
+      if (isTwoLegged) {
+        knockoutFixtures = [
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: team1?.id || null,
+            away_team_id: team4?.id || null,
+            stage: "knockout",
+            round: "Semi Final - 1st Leg",
+            bracket_slot: 1,
+            status: "scheduled",
+          },
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: team4?.id || null,
+            away_team_id: team1?.id || null,
+            stage: "knockout",
+            round: "Semi Final - 2nd Leg",
+            bracket_slot: 2,
+            status: "scheduled",
+          },
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: team2?.id || null,
+            away_team_id: team3?.id || null,
+            stage: "knockout",
+            round: "Semi Final - 1st Leg",
+            bracket_slot: 3,
+            status: "scheduled",
+          },
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: team3?.id || null,
+            away_team_id: team2?.id || null,
+            stage: "knockout",
+            round: "Semi Final - 2nd Leg",
+            bracket_slot: 4,
+            status: "scheduled",
+          },
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: null,
+            away_team_id: null,
+            stage: "knockout",
+            round: "Final - 1st Leg",
+            bracket_slot: 5,
+            status: "scheduled",
+          },
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: null,
+            away_team_id: null,
+            stage: "knockout",
+            round: "Final - 2nd Leg",
+            bracket_slot: 6,
+            status: "scheduled",
+          },
+        ];
+      } else {
+        knockoutFixtures = [
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: team1?.id || null,
+            away_team_id: team4?.id || null,
+            stage: "knockout",
+            round: "Semi Final",
+            bracket_slot: 1,
+            status: "scheduled",
+          },
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: team2?.id || null,
+            away_team_id: team3?.id || null,
+            stage: "knockout",
+            round: "Semi Final",
+            bracket_slot: 2,
+            status: "scheduled",
+          },
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: null,
+            away_team_id: null,
+            stage: "knockout",
+            round: "Third Place",
+            bracket_slot: 3,
+            status: "scheduled",
+          },
+          {
+            tournament_id: selectedTourneyId,
+            home_team_id: null,
+            away_team_id: null,
+            stage: "knockout",
+            round: "Final",
+            bracket_slot: 4,
+            status: "scheduled",
+          },
+        ];
+      }
 
       const { error } = await supabase.from("fixtures").insert(knockoutFixtures);
       if (error) throw error;
-      toast.success("Knockout Bracket generated (2 Semi Finals, 3rd Place & Final)!");
+      toast.success(`Knockout Bracket generated (${isTwoLegged ? "Two-Legged Home & Away" : "Single Leg"})!`);
       setActiveStageTab("knockout");
       queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
     } catch (err: any) {
       toast.error(err.message || "Failed to generate knockout bracket.");
     }
+  }
+
+  function openScoreDialog(f: any) {
+    setSelectedFixture(f);
+    setHomeScore(f.result?.home_score || 0);
+    setAwayScore(f.result?.away_score || 0);
+    setHomeYellow(f.result?.home_yellow_cards || 0);
+    setAwayYellow(f.result?.away_yellow_cards || 0);
+    setHomeRed(f.result?.home_red_cards || 0);
+    setAwayRed(f.result?.away_red_cards || 0);
+
+    const { homePen, awayPen } = parseResultPenalties(f.result);
+    setHomePenalties(homePen !== null ? homePen : 0);
+    setAwayPenalties(awayPen !== null ? awayPen : 0);
+    setEnablePenalties(homePen !== null || awayPen !== null || f.stage === "knockout" || !!f.round);
   }
 
   async function addFixture() {
@@ -1170,6 +1251,14 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
         .eq("fixture_id", selectedFixture.id)
         .maybeSingle();
 
+      let notesPayload: string | null = null;
+      if (enablePenalties || (homeScore === awayScore && (homePenalties > 0 || awayPenalties > 0))) {
+        notesPayload = JSON.stringify({
+          home_penalties: homePenalties,
+          away_penalties: awayPenalties,
+        });
+      }
+
       const resultPayload = {
         fixture_id: selectedFixture.id,
         home_score: homeScore,
@@ -1178,6 +1267,7 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
         away_yellow_cards: awayYellow,
         home_red_cards: homeRed,
         away_red_cards: awayRed,
+        notes: notesPayload,
       };
 
       if (existingResult) {
@@ -1289,8 +1379,11 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
             <Button onClick={generateSchedule} variant="outline" size="sm" className="gap-1">
               ⚽ Auto-Generate Round Robin
             </Button>
-            <Button onClick={generateTop4Knockout} variant="secondary" size="sm" className="gap-1 border border-primary/40 text-primary">
-              🏆 Auto-Generate Top 4 Knockout
+            <Button onClick={() => generateTop4Knockout(false)} variant="secondary" size="sm" className="gap-1 border border-primary/40 text-primary">
+              🏆 Top 4 Knockout (Single Leg)
+            </Button>
+            <Button onClick={() => generateTop4Knockout(true)} variant="secondary" size="sm" className="gap-1 border border-amber-500/40 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20">
+              🔁 Top 4 Knockout (Two-Legged Home & Away)
             </Button>
           </div>
         )}
@@ -1353,10 +1446,16 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                       onChange={(e) => setNewRound(e.target.value)}
                       className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm font-semibold"
                     >
-                      <option value="Quarter Final">Quarter Final</option>
-                      <option value="Semi Final">Semi Final</option>
+                      <option value="Semi Final">Semi Final (Single Leg)</option>
+                      <option value="Semi Final - 1st Leg">Semi Final - 1st Leg</option>
+                      <option value="Semi Final - 2nd Leg">Semi Final - 2nd Leg</option>
+                      <option value="Quarter Final">Quarter Final (Single Leg)</option>
+                      <option value="Quarter Final - 1st Leg">Quarter Final - 1st Leg</option>
+                      <option value="Quarter Final - 2nd Leg">Quarter Final - 2nd Leg</option>
+                      <option value="Final">Final 🏆 (Single Leg)</option>
+                      <option value="Final - 1st Leg">Final - 1st Leg 🏆</option>
+                      <option value="Final - 2nd Leg">Final - 2nd Leg 🏆</option>
                       <option value="Third Place">3rd Place Match</option>
-                      <option value="Final">Final 🏆</option>
                       <option value="Round of 16">Round of 16</option>
                     </select>
                   </div>
@@ -1429,7 +1528,12 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                         : "bg-primary/20 text-primary"
                                       }`}>
                                       {f.status === "completed"
-                                        ? `${f.result?.home_score} - ${f.result?.away_score}`
+                                        ? (() => {
+                                            const { homePen, awayPen } = parseResultPenalties(f.result);
+                                            return homePen !== null && awayPen !== null
+                                              ? `${f.result?.home_score}-${f.result?.away_score} (${homePen}-${awayPen}p)`
+                                              : `${f.result?.home_score} - ${f.result?.away_score}`;
+                                          })()
                                         : "VS"}
                                     </span>
                                   </td>
@@ -1439,15 +1543,7 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                       <Button
                                         size="sm" variant="secondary"
                                         className="h-7 text-xs px-2"
-                                        onClick={() => {
-                                          setSelectedFixture(f);
-                                          setHomeScore(f.result?.home_score || 0);
-                                          setAwayScore(f.result?.away_score || 0);
-                                          setHomeYellow(f.result?.home_yellow_cards || 0);
-                                          setAwayYellow(f.result?.away_yellow_cards || 0);
-                                          setHomeRed(f.result?.home_red_cards || 0);
-                                          setAwayRed(f.result?.away_red_cards || 0);
-                                        }}
+                                        onClick={() => openScoreDialog(f)}
                                       >
                                         {f.status === "completed" ? "Edit" : "Score"}
                                       </Button>
@@ -1487,7 +1583,12 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                       : "bg-primary/20 text-primary border border-primary/30"
                                     }`}>
                                     {f.status === "completed"
-                                      ? `${f.result?.home_score} - ${f.result?.away_score}`
+                                      ? (() => {
+                                          const { homePen, awayPen } = parseResultPenalties(f.result);
+                                          return homePen !== null && awayPen !== null
+                                            ? `${f.result?.home_score}-${f.result?.away_score} (${homePen}-${awayPen}p)`
+                                            : `${f.result?.home_score} - ${f.result?.away_score}`;
+                                        })()
                                       : "VS"}
                                   </span>
                                 </td>
@@ -1497,15 +1598,7 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                     <Button
                                       size="sm" variant="secondary"
                                       className="h-7 text-xs px-2 border border-primary/40"
-                                      onClick={() => {
-                                        setSelectedFixture(f);
-                                        setHomeScore(f.result?.home_score || 0);
-                                        setAwayScore(f.result?.away_score || 0);
-                                        setHomeYellow(f.result?.home_yellow_cards || 0);
-                                        setAwayYellow(f.result?.away_yellow_cards || 0);
-                                        setHomeRed(f.result?.home_red_cards || 0);
-                                        setAwayRed(f.result?.away_red_cards || 0);
-                                      }}
+                                      onClick={() => openScoreDialog(f)}
                                     >
                                       {f.status === "completed" ? "Edit" : "Score"}
                                     </Button>
@@ -1570,6 +1663,33 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                       <Input type="number" min={0} value={awayRed} onChange={(e) => setAwayRed(parseInt(e.target.value) || 0)} className="h-8 text-xs border-red-500/40 bg-red-500/10 text-red-400" />
                     </div>
                   </div>
+                </div>
+
+                {/* Penalty Shootout Section (Knockout Tiebreaker) */}
+                <div className="p-3 border border-amber-500/40 rounded-lg bg-amber-500/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                      🏆 Penalty Shootout (Tiebreaker)
+                    </label>
+                    <input
+                      type="checkbox"
+                      checked={enablePenalties}
+                      onChange={(e) => setEnablePenalties(e.target.checked)}
+                      className="size-4 rounded accent-primary cursor-pointer"
+                    />
+                  </div>
+                  {enablePenalties && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <label className="text-[10px] text-amber-300 font-semibold uppercase">{selectedFixture.home?.short_name || "Home"} Penalties</label>
+                        <Input type="number" min={0} value={homePenalties} onChange={(e) => setHomePenalties(parseInt(e.target.value) || 0)} className="h-8 text-xs border-amber-500/40 bg-amber-500/20 text-amber-300 font-bold" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-amber-300 font-semibold uppercase">{selectedFixture.away?.short_name || "Away"} Penalties</label>
+                        <Input type="number" min={0} value={awayPenalties} onChange={(e) => setAwayPenalties(parseInt(e.target.value) || 0)} className="h-8 text-xs border-amber-500/40 bg-amber-500/20 text-amber-300 font-bold" />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-2 pt-1">

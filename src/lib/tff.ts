@@ -65,6 +65,8 @@ export interface MatchResult {
   fixture_id: string;
   home_score: number;
   away_score: number;
+  home_penalties?: number | null;
+  away_penalties?: number | null;
   home_yellow_cards?: number;
   away_yellow_cards?: number;
   home_red_cards?: number;
@@ -170,6 +172,147 @@ export function titleFromSlug(slug: string) {
     .split("-")
     .map((part) => (part.length <= 3 ? part.toUpperCase() : part.charAt(0).toUpperCase() + part.slice(1)))
     .join(" ");
+}
+
+export function parseResultPenalties(result: MatchResult | null): { homePen: number | null; awayPen: number | null } {
+  if (!result) return { homePen: null, awayPen: null };
+
+  if (typeof result.home_penalties === "number" && typeof result.away_penalties === "number") {
+    return { homePen: result.home_penalties, awayPen: result.away_penalties };
+  }
+
+  if (result.notes) {
+    try {
+      if (result.notes.startsWith("{") && result.notes.endsWith("}")) {
+        const parsed = JSON.parse(result.notes);
+        if (typeof parsed.home_penalties === "number" && typeof parsed.away_penalties === "number") {
+          return { homePen: Number(parsed.home_penalties), awayPen: Number(parsed.away_penalties) };
+        }
+      }
+      const match = result.notes.match(/PEN:\s*(\d+)\s*[-:]\s*(\d+)/i) || result.notes.match(/penalties:\s*(\d+)\s*[-:]\s*(\d+)/i);
+      if (match) {
+        return { homePen: parseInt(match[1], 10), awayPen: parseInt(match[2], 10) };
+      }
+    } catch {}
+  }
+  return { homePen: null, awayPen: null };
+}
+
+export function getMatchWinner(fixture: FixtureWithTeams): { winnerTeamId: string | null; isPenalties: boolean } {
+  const result = fixture.result;
+  if (!result) return { winnerTeamId: null, isPenalties: false };
+
+  const homeScore = Number(result.home_score) || 0;
+  const awayScore = Number(result.away_score) || 0;
+
+  if (homeScore > awayScore) {
+    return { winnerTeamId: fixture.home_team_id, isPenalties: false };
+  }
+  if (awayScore > homeScore) {
+    return { winnerTeamId: fixture.away_team_id, isPenalties: false };
+  }
+
+  // Tied score -> check penalties
+  const { homePen, awayPen } = parseResultPenalties(result);
+  if (homePen !== null && awayPen !== null) {
+    if (homePen > awayPen) {
+      return { winnerTeamId: fixture.home_team_id, isPenalties: true };
+    }
+    if (awayPen > homePen) {
+      return { winnerTeamId: fixture.away_team_id, isPenalties: true };
+    }
+  }
+
+  return { winnerTeamId: null, isPenalties: false };
+}
+
+export interface TwoLegAggregateResult {
+  teamAId: string | null;
+  teamBId: string | null;
+  totalGoalsA: number;
+  totalGoalsB: number;
+  winnerTeamId: string | null;
+  isPenalties: boolean;
+  penA: number | null;
+  penB: number | null;
+  isCompleted: boolean;
+}
+
+export function computeTwoLegAggregate(
+  leg1?: FixtureWithTeams | null,
+  leg2?: FixtureWithTeams | null
+): TwoLegAggregateResult {
+  if (!leg1) {
+    return {
+      teamAId: null,
+      teamBId: null,
+      totalGoalsA: 0,
+      totalGoalsB: 0,
+      winnerTeamId: null,
+      isPenalties: false,
+      penA: null,
+      penB: null,
+      isCompleted: false,
+    };
+  }
+
+  const teamAId = leg1.home_team_id;
+  const teamBId = leg1.away_team_id;
+
+  const res1 = leg1.result;
+  const res2 = leg2?.result;
+
+  const leg1A = res1 ? Number(res1.home_score) || 0 : 0;
+  const leg1B = res1 ? Number(res1.away_score) || 0 : 0;
+
+  // In Leg 2, Team B is home and Team A is away
+  const leg2B = res2 ? (leg2?.home_team_id === teamBId ? Number(res2.home_score) || 0 : Number(res2.away_score) || 0) : 0;
+  const leg2A = res2 ? (leg2?.away_team_id === teamAId ? Number(res2.away_score) || 0 : Number(res2.home_score) || 0) : 0;
+
+  const totalGoalsA = leg1A + leg2A;
+  const totalGoalsB = leg1B + leg2B;
+
+  const isCompleted = !!(res1 && res2);
+  let winnerTeamId: string | null = null;
+  let isPenalties = false;
+  let penA: number | null = null;
+  let penB: number | null = null;
+
+  if (isCompleted) {
+    if (totalGoalsA > totalGoalsB) {
+      winnerTeamId = teamAId;
+    } else if (totalGoalsB > totalGoalsA) {
+      winnerTeamId = teamBId;
+    } else if (res2) {
+      // Tied aggregate -> penalties on Leg 2
+      const { homePen, awayPen } = parseResultPenalties(res2);
+      if (homePen !== null && awayPen !== null) {
+        const homeIsTeamB = leg2?.home_team_id === teamBId;
+        penB = homeIsTeamB ? homePen : awayPen;
+        penA = homeIsTeamB ? awayPen : homePen;
+
+        if (penA > penB) {
+          winnerTeamId = teamAId;
+          isPenalties = true;
+        } else if (penB > penA) {
+          winnerTeamId = teamBId;
+          isPenalties = true;
+        }
+      }
+    }
+  }
+
+  return {
+    teamAId,
+    teamBId,
+    totalGoalsA,
+    totalGoalsB,
+    winnerTeamId,
+    isPenalties,
+    penA,
+    penB,
+    isCompleted,
+  };
 }
 
 /* --------------------------------- queries -------------------------------- */
