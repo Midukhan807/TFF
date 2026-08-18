@@ -336,13 +336,68 @@ export function saveTournamentAwards(tournamentId: string, award: TournamentAwar
   }
 }
 
+async function getFixtureCardsMap(tournamentId?: string): Promise<Map<string, { yellow: number; red: number }>> {
+  const cardsMap = new Map<string, { yellow: number; red: number }>();
+  try {
+    let query = db.from("fixtures").select("home_team_id, away_team_id, tournament_id, results(home_yellow_cards, away_yellow_cards, home_red_cards, away_red_cards)").eq("status", "completed");
+    if (tournamentId) {
+      query = query.eq("tournament_id", tournamentId);
+    }
+    const { data, error } = await query;
+    if (error || !data) return cardsMap;
+
+    for (const f of data) {
+      const res = Array.isArray(f.results) ? f.results[0] : f.results;
+      if (!res) continue;
+
+      if (f.home_team_id) {
+        const key = tournamentId ? f.home_team_id : `${f.tournament_id}_${f.home_team_id}`;
+        const cur = cardsMap.get(key) || { yellow: 0, red: 0 };
+        cur.yellow += Number(res.home_yellow_cards) || 0;
+        cur.red += Number(res.home_red_cards) || 0;
+        cardsMap.set(key, cur);
+      }
+      if (f.away_team_id) {
+        const key = tournamentId ? f.away_team_id : `${f.tournament_id}_${f.away_team_id}`;
+        const cur = cardsMap.get(key) || { yellow: 0, red: 0 };
+        cur.yellow += Number(res.away_yellow_cards) || 0;
+        cur.red += Number(res.away_red_cards) || 0;
+        cardsMap.set(key, cur);
+      }
+    }
+  } catch (e) {
+    console.error("Error fetching fixture cards", e);
+  }
+  return cardsMap;
+}
+
 export async function fetchStandings(tournamentId: string): Promise<StandingRow[]> {
   const manual = getManualStandings(tournamentId);
-  if (manual.length > 0) return manual;
+  let rows: StandingRow[] = [];
+  if (manual.length > 0) {
+    rows = manual;
+  } else {
+    const { data, error } = await db.from("standings").select("*").eq("tournament_id", tournamentId);
+    if (error) throw error;
+    rows = (data ?? []) as StandingRow[];
+  }
 
-  const { data, error } = await db.from("standings").select("*").eq("tournament_id", tournamentId);
-  if (error) throw error;
-  return (data ?? []) as StandingRow[];
+  try {
+    const cardsMap = await getFixtureCardsMap(tournamentId);
+    if (cardsMap.size > 0) {
+      return rows.map((row) => {
+        const cards = cardsMap.get(row.team_id);
+        if (!cards) return row;
+        return {
+          ...row,
+          yellow_cards: Math.max(Number(row.yellow_cards) || 0, cards.yellow),
+          red_cards: Math.max(Number(row.red_cards) || 0, cards.red),
+        };
+      });
+    }
+  } catch {}
+
+  return rows;
 }
 
 export async function fetchAllStandings(): Promise<StandingRow[]> {
@@ -350,13 +405,32 @@ export async function fetchAllStandings(): Promise<StandingRow[]> {
   let dbRows = ((data ?? []) as any[]).filter((row) => !row.tournament?.is_demo) as StandingRow[];
 
   const manualAll = getManualStandings();
+  let rows: StandingRow[] = [];
   if (manualAll.length > 0) {
     const manualTourneyIds = new Set(manualAll.map((m) => m.tournament_id));
     dbRows = dbRows.filter((r) => !manualTourneyIds.has(r.tournament_id));
-    return [...dbRows, ...manualAll];
+    rows = [...dbRows, ...manualAll];
+  } else {
+    rows = dbRows;
   }
 
-  return dbRows;
+  try {
+    const cardsMap = await getFixtureCardsMap();
+    if (cardsMap.size > 0) {
+      return rows.map((row) => {
+        const key = `${row.tournament_id}_${row.team_id}`;
+        const cards = cardsMap.get(key) || cardsMap.get(row.team_id);
+        if (!cards) return row;
+        return {
+          ...row,
+          yellow_cards: Math.max(Number(row.yellow_cards) || 0, cards.yellow),
+          red_cards: Math.max(Number(row.red_cards) || 0, cards.red),
+        };
+      });
+    }
+  } catch {}
+
+  return rows;
 }
 
 export async function fetchChampions(): Promise<Champion[]> {

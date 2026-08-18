@@ -1174,11 +1174,37 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
         .eq("id", selectedFixture.id);
       if (fixError) throw fixError;
 
+      // If manual standings exist for this tournament, accumulate cards directly into manual standings as well
+      if (selectedTourneyId && (homeYellow > 0 || awayYellow > 0 || homeRed > 0 || awayRed > 0)) {
+        const manual = getManualStandings(selectedTourneyId);
+        if (manual.length > 0) {
+          const updated = manual.map((row) => {
+            if (row.team_id === selectedFixture.home_team_id) {
+              return {
+                ...row,
+                yellow_cards: (Number(row.yellow_cards) || 0) + homeYellow,
+                red_cards: (Number(row.red_cards) || 0) + homeRed,
+              };
+            }
+            if (row.team_id === selectedFixture.away_team_id) {
+              return {
+                ...row,
+                yellow_cards: (Number(row.yellow_cards) || 0) + awayYellow,
+                red_cards: (Number(row.red_cards) || 0) + awayRed,
+              };
+            }
+            return row;
+          });
+          saveManualStandings(selectedTourneyId, updated);
+        }
+      }
+
       toast.success("Score and card stats recorded successfully!");
       setSelectedFixture(null);
       queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
       queryClient.invalidateQueries({ queryKey: ["all-standings"] });
       queryClient.invalidateQueries({ queryKey: ["standings"] });
+      queryClient.invalidateQueries({ queryKey: ["standings-admin", selectedTourneyId] });
     } catch (err: any) {
       toast.error(err.message || "Failed to record score.");
     }
@@ -1571,12 +1597,7 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
 
   const standingsQuery = useQuery({
     queryKey: ["standings-admin", selectedTourneyId],
-    queryFn: async () => {
-      const manual = getManualStandings(selectedTourneyId);
-      if (manual.length > 0) return manual;
-      const { data } = await supabase.from("standings").select("*").eq("tournament_id", selectedTourneyId);
-      return data ?? [];
-    },
+    queryFn: () => fetchStandings(selectedTourneyId),
     enabled: !!selectedTourneyId,
   });
 
