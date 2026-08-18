@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LogOut, Menu, Search, Shield, X } from "lucide-react";
+import { LogOut, Menu, Shield, X } from "lucide-react";
 import { useState } from "react";
 
 import { TffLogo } from "@/components/tff/branding";
@@ -21,16 +21,8 @@ const NAV = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { session } = useIsAdmin();
-
-  function submitSearch(event: React.FormEvent) {
-    event.preventDefault();
-    if (!query.trim()) return;
-    setOpen(false);
-    navigate({ to: "/search", search: { q: query.trim() } });
-  }
 
   return (
     <header className="glass sticky top-0 z-50 border-b border-border/70">
@@ -54,18 +46,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <form onSubmit={submitSearch} className="hidden md:block">
-            <label className="flex h-9 items-center gap-2 rounded-md border border-border bg-secondary/60 px-2.5">
-              <Search className="size-4 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search TFF..."
-                className="w-36 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              />
-            </label>
-          </form>
-
           {session && (
             <Button
               size="sm"
@@ -111,14 +91,6 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <form onSubmit={submitSearch} className="mt-2">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search TFF..."
-              className="h-10 w-full rounded-md border border-border bg-secondary/60 px-3 text-sm outline-none"
-            />
-          </form>
         </nav>
       </div>
     </header>
