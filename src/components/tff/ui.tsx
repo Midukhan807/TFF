@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Trophy, Shield, Users, Eye, User, Shirt, Activity, Calendar } from "lucide-react";
 
 import { TeamLogo } from "@/components/tff/branding";
+import { MatchPredictionPoll } from "@/components/tff/prediction-poll";
 import { cn } from "@/lib/utils";
 import {
   FORMAT_LABELS,
@@ -393,22 +394,27 @@ export function TournamentCard({
 
 export function FixtureCard({ fixture }: { fixture: FixtureWithTeams }) {
   return (
-    <div className="panel flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-      <div className="min-w-40 shrink-0">
-        <p className="label-caps text-primary">{fixture.tournament?.name ?? "TFF"}</p>
-        <p className="text-xs text-muted-foreground">{fixture.round ?? "Fixture"}</p>
-      </div>
-      <div className="flex flex-1 items-center justify-between gap-3">
-        <TeamSide team={fixture.home} align="left" />
-        <div className="shrink-0 text-center">
-          <p className="font-display text-lg text-muted-foreground">VS</p>
-          <p className="text-xs text-muted-foreground">{formatTime(fixture.scheduled_time)}</p>
+    <div className="panel flex flex-col gap-3 p-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="min-w-40 shrink-0">
+          <p className="label-caps text-primary">{fixture.tournament?.name ?? "TFF"}</p>
+          <p className="text-xs text-muted-foreground">{fixture.round ?? "Fixture"}</p>
         </div>
-        <TeamSide team={fixture.away} align="right" />
+        <div className="flex flex-1 items-center justify-between gap-3">
+          <TeamSide team={fixture.home} align="left" />
+          <div className="shrink-0 text-center">
+            <p className="font-display text-lg text-muted-foreground">VS</p>
+            <p className="text-xs text-muted-foreground">{formatTime(fixture.scheduled_time)}</p>
+          </div>
+          <TeamSide team={fixture.away} align="right" />
+        </div>
+        <div className="shrink-0 text-left sm:text-right">
+          <p className="label-caps text-muted-foreground">{formatDate(fixture.scheduled_date)}</p>
+          <StatusBadge status={fixture.status} />
+        </div>
       </div>
-      <div className="shrink-0 text-left sm:text-right">
-        <p className="label-caps text-muted-foreground">{formatDate(fixture.scheduled_date)}</p>
-        <StatusBadge status={fixture.status} />
+      <div className="border-t border-border/40 pt-2.5">
+        <MatchPredictionPoll fixture={fixture} compact />
       </div>
     </div>
   );
