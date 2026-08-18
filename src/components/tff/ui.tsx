@@ -480,7 +480,7 @@ export function StandingsTable({
   const teamMap = new Map(teams.map((t) => [t.id, t]));
   return (
     <div className="panel overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
+      <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="label-caps border-b border-border/70 text-muted-foreground">
             <th className="px-4 py-3 text-left">Pos</th>
@@ -490,6 +490,12 @@ export function StandingsTable({
                 {h}
               </th>
             ))}
+            <th className="px-2 py-3 text-center text-yellow-400" title="Yellow Cards">
+              YC
+            </th>
+            <th className="px-2 py-3 text-center text-red-400" title="Red Cards">
+              RC
+            </th>
             <th className="px-4 py-3 text-center text-primary">Pts</th>
           </tr>
         </thead>
@@ -537,7 +543,19 @@ export function StandingsTable({
                 <td className="px-2 py-3 text-center">
                   {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
                 </td>
-                <td className="font-display px-4 py-3 text-center text-lg text-primary">
+                <td className="px-2 py-3 text-center">
+                  <span className="inline-flex items-center justify-center gap-1 rounded bg-yellow-500/10 px-2 py-0.5 text-xs font-semibold text-yellow-400 border border-yellow-500/20">
+                    <span className="inline-block size-2 rounded-sm bg-yellow-400" />
+                    {row.yellow_cards ?? 0}
+                  </span>
+                </td>
+                <td className="px-2 py-3 text-center">
+                  <span className="inline-flex items-center justify-center gap-1 rounded bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-400 border border-red-500/20">
+                    <span className="inline-block size-2 rounded-sm bg-red-500" />
+                    {row.red_cards ?? 0}
+                  </span>
+                </td>
+                <td className="font-display px-4 py-3 text-center text-lg text-primary font-bold">
                   {row.points}
                 </td>
               </tr>

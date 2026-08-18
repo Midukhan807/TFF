@@ -65,6 +65,10 @@ export interface MatchResult {
   fixture_id: string;
   home_score: number;
   away_score: number;
+  home_yellow_cards?: number;
+  away_yellow_cards?: number;
+  home_red_cards?: number;
+  away_red_cards?: number;
   played_at: string;
   notes: string | null;
   screenshot_url: string | null;
@@ -82,6 +86,8 @@ export interface StandingRow {
   goals_for: number;
   goals_against: number;
   goal_difference: number;
+  yellow_cards?: number;
+  red_cards?: number;
   points: number;
 }
 
@@ -470,6 +476,8 @@ export interface TeamCareer {
   losses: number;
   goalsFor: number;
   goalsAgainst: number;
+  yellowCards: number;
+  redCards: number;
   titles: number;
   rankingPoints: number;
 }
@@ -514,6 +522,8 @@ export function buildCareers(
       losses: 0,
       goalsFor: 0,
       goalsAgainst: 0,
+      yellowCards: 0,
+      redCards: 0,
       titles: 0,
       rankingPoints: 0,
     });
@@ -539,6 +549,8 @@ export function buildCareers(
     entry.losses += Number(row.losses) || 0;
     entry.goalsFor += Number(row.goals_for) || 0;
     entry.goalsAgainst += Number(row.goals_against) || 0;
+    entry.yellowCards += Number(row.yellow_cards) || 0;
+    entry.redCards += Number(row.red_cards) || 0;
   }
 
   // 2. Knockout stage matches and stage reach points

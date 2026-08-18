@@ -946,6 +946,10 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
   const [selectedFixture, setSelectedFixture] = useState<any>(null);
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
+  const [homeYellow, setHomeYellow] = useState(0);
+  const [awayYellow, setAwayYellow] = useState(0);
+  const [homeRed, setHomeRed] = useState(0);
+  const [awayRed, setAwayRed] = useState(0);
 
   // State for adding a fixture manually
   const [newStage, setNewStage] = useState<"league" | "knockout">("league");
@@ -1140,17 +1144,28 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
         .eq("fixture_id", selectedFixture.id)
         .maybeSingle();
 
+      const resultPayload = {
+        fixture_id: selectedFixture.id,
+        home_score: homeScore,
+        away_score: awayScore,
+        home_yellow_cards: homeYellow,
+        away_yellow_cards: awayYellow,
+        home_red_cards: homeRed,
+        away_red_cards: awayRed,
+      };
+
       if (existingResult) {
-        const { error } = await supabase
-          .from("results")
-          .update({ home_score: homeScore, away_score: awayScore })
-          .eq("id", existingResult.id);
-        if (error) throw error;
+        let res = await supabase.from("results").update(resultPayload).eq("id", existingResult.id);
+        if (res.error) {
+          res = await supabase.from("results").update({ home_score: homeScore, away_score: awayScore }).eq("id", existingResult.id);
+        }
+        if (res.error) throw res.error;
       } else {
-        const { error } = await supabase
-          .from("results")
-          .insert([{ fixture_id: selectedFixture.id, home_score: homeScore, away_score: awayScore }]);
-        if (error) throw error;
+        let res = await supabase.from("results").insert([resultPayload]);
+        if (res.error) {
+          res = await supabase.from("results").insert([{ fixture_id: selectedFixture.id, home_score: homeScore, away_score: awayScore }]);
+        }
+        if (res.error) throw res.error;
       }
 
       const { error: fixError } = await supabase
@@ -1159,7 +1174,7 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
         .eq("id", selectedFixture.id);
       if (fixError) throw fixError;
 
-      toast.success("Score recorded successfully!");
+      toast.success("Score and card stats recorded successfully!");
       setSelectedFixture(null);
       queryClient.invalidateQueries({ queryKey: ["fixtures-admin", selectedTourneyId] });
       queryClient.invalidateQueries({ queryKey: ["all-standings"] });
@@ -1350,7 +1365,15 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                       <Button
                                         size="sm" variant="secondary"
                                         className="h-7 text-xs px-2"
-                                        onClick={() => { setSelectedFixture(f); setHomeScore(f.result?.home_score || 0); setAwayScore(f.result?.away_score || 0); }}
+                                        onClick={() => {
+                                          setSelectedFixture(f);
+                                          setHomeScore(f.result?.home_score || 0);
+                                          setAwayScore(f.result?.away_score || 0);
+                                          setHomeYellow(f.result?.home_yellow_cards || 0);
+                                          setAwayYellow(f.result?.away_yellow_cards || 0);
+                                          setHomeRed(f.result?.home_red_cards || 0);
+                                          setAwayRed(f.result?.away_red_cards || 0);
+                                        }}
                                       >
                                         {f.status === "completed" ? "Edit" : "Score"}
                                       </Button>
@@ -1400,7 +1423,15 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                     <Button
                                       size="sm" variant="secondary"
                                       className="h-7 text-xs px-2 border border-primary/40"
-                                      onClick={() => { setSelectedFixture(f); setHomeScore(f.result?.home_score || 0); setAwayScore(f.result?.away_score || 0); }}
+                                      onClick={() => {
+                                        setSelectedFixture(f);
+                                        setHomeScore(f.result?.home_score || 0);
+                                        setAwayScore(f.result?.away_score || 0);
+                                        setHomeYellow(f.result?.home_yellow_cards || 0);
+                                        setAwayYellow(f.result?.away_yellow_cards || 0);
+                                        setHomeRed(f.result?.home_red_cards || 0);
+                                        setAwayRed(f.result?.away_red_cards || 0);
+                                      }}
                                     >
                                       {f.status === "completed" ? "Edit" : "Score"}
                                     </Button>
@@ -1429,16 +1460,46 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                 Record Score — {selectedFixture.stage === "knockout" ? selectedFixture.round : `Matchday ${selectedFixture.matchday}`}
               </h3>
               <form onSubmit={handleRecordScore} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground label-caps">{selectedFixture.home?.name || "Home Team (TBD)"}</label>
-                  <Input type="number" min={0} required value={homeScore} onChange={(e) => setHomeScore(parseInt(e.target.value))} />
+                {/* Home Team Inputs */}
+                <div className="space-y-2 p-3 border border-border/70 rounded-lg bg-secondary/20">
+                  <label className="text-xs font-bold text-primary label-caps block">{selectedFixture.home?.name || "Home Team (TBD)"}</label>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground uppercase font-semibold">Goals Scored</label>
+                    <Input type="number" min={0} required value={homeScore} onChange={(e) => setHomeScore(parseInt(e.target.value) || 0)} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <label className="text-[10px] text-yellow-400 uppercase font-semibold flex items-center gap-1">🟨 Yellow Cards</label>
+                      <Input type="number" min={0} value={homeYellow} onChange={(e) => setHomeYellow(parseInt(e.target.value) || 0)} className="h-8 text-xs border-yellow-500/40 bg-yellow-500/10 text-yellow-400" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-red-400 uppercase font-semibold flex items-center gap-1">🟥 Red Cards</label>
+                      <Input type="number" min={0} value={homeRed} onChange={(e) => setHomeRed(parseInt(e.target.value) || 0)} className="h-8 text-xs border-red-500/40 bg-red-500/10 text-red-400" />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground label-caps">{selectedFixture.away?.name || "Away Team (TBD)"}</label>
-                  <Input type="number" min={0} required value={awayScore} onChange={(e) => setAwayScore(parseInt(e.target.value))} />
+
+                {/* Away Team Inputs */}
+                <div className="space-y-2 p-3 border border-border/70 rounded-lg bg-secondary/20">
+                  <label className="text-xs font-bold text-primary label-caps block">{selectedFixture.away?.name || "Away Team (TBD)"}</label>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground uppercase font-semibold">Goals Scored</label>
+                    <Input type="number" min={0} required value={awayScore} onChange={(e) => setAwayScore(parseInt(e.target.value) || 0)} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <label className="text-[10px] text-yellow-400 uppercase font-semibold flex items-center gap-1">🟨 Yellow Cards</label>
+                      <Input type="number" min={0} value={awayYellow} onChange={(e) => setAwayYellow(parseInt(e.target.value) || 0)} className="h-8 text-xs border-yellow-500/40 bg-yellow-500/10 text-yellow-400" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-red-400 uppercase font-semibold flex items-center gap-1">🟥 Red Cards</label>
+                      <Input type="number" min={0} value={awayRed} onChange={(e) => setAwayRed(parseInt(e.target.value) || 0)} className="h-8 text-xs border-red-500/40 bg-red-500/10 text-red-400" />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">Save Score</Button>
+
+                <div className="flex gap-2 pt-1">
+                  <Button type="submit" className="flex-1">Save Score & Cards</Button>
                   <Button type="button" variant="ghost" onClick={() => setSelectedFixture(null)}>Cancel</Button>
                 </div>
               </form>
@@ -1535,7 +1596,9 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
         tournament_id: selectedTourneyId,
         team_id: t.id,
         played: 0, wins: 0, draws: 0, losses: 0,
-        goals_for: 0, goals_against: 0, goal_difference: 0, points: 0,
+        goals_for: 0, goals_against: 0, goal_difference: 0,
+        yellow_cards: 0, red_cards: 0,
+        points: 0,
       }));
       setRows(initial);
     }
@@ -1652,6 +1715,8 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
         goals_for: Number(r.goals_for) || 0,
         goals_against: Number(r.goals_against) || 0,
         goal_difference: Number(r.goal_difference) || 0,
+        yellow_cards: Number(r.yellow_cards) || 0,
+        red_cards: Number(r.red_cards) || 0,
         points: Number(r.points) || 0,
       }));
 
@@ -1775,6 +1840,8 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
                     <th className="px-2 py-2 text-center w-16">GF</th>
                     <th className="px-2 py-2 text-center w-16">GA</th>
                     <th className="px-2 py-2 text-center w-16">GD</th>
+                    <th className="px-2 py-2 text-center w-14 text-yellow-400" title="Yellow Cards">YC</th>
+                    <th className="px-2 py-2 text-center w-14 text-red-400" title="Red Cards">RC</th>
                     <th className="px-2 py-2 text-center w-20">PTS</th>
                     <th className="px-2 py-2 text-center w-10"></th>
                   </tr>
@@ -1844,6 +1911,20 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
                       </td>
                       <td className="px-1 py-2 text-center">
                         <input
+                          type="number" min={0} value={row.yellow_cards ?? 0}
+                          onChange={(e) => updateRowField(idx, "yellow_cards", e.target.value)}
+                          className="w-12 h-8 text-center rounded border border-yellow-500/40 bg-yellow-500/10 text-yellow-400 text-xs font-semibold"
+                        />
+                      </td>
+                      <td className="px-1 py-2 text-center">
+                        <input
+                          type="number" min={0} value={row.red_cards ?? 0}
+                          onChange={(e) => updateRowField(idx, "red_cards", e.target.value)}
+                          className="w-12 h-8 text-center rounded border border-red-500/40 bg-red-500/10 text-red-400 text-xs font-semibold"
+                        />
+                      </td>
+                      <td className="px-1 py-2 text-center">
+                        <input
                           type="number" min={0} value={row.points ?? 0}
                           onChange={(e) => updateRowField(idx, "points", e.target.value)}
                           className="w-16 h-8 text-center rounded border border-primary/40 bg-primary/10 text-primary font-bold text-sm"
@@ -1879,7 +1960,9 @@ function StandingsTabContent({ tournaments, teams, onSelectTab }: { tournaments:
                       tournament_id: selectedTourneyId,
                       team_id: "",
                       played: 0, wins: 0, draws: 0, losses: 0,
-                      goals_for: 0, goals_against: 0, goal_difference: 0, points: 0,
+                      goals_for: 0, goals_against: 0, goal_difference: 0,
+                      yellow_cards: 0, red_cards: 0,
+                      points: 0,
                     },
                   ])
                 }

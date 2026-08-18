@@ -61,9 +61,11 @@ function TeamProfile() {
       losses: acc.losses + row.losses,
       gf: acc.gf + row.goals_for,
       ga: acc.ga + row.goals_against,
+      yellow: acc.yellow + (row.yellow_cards || 0),
+      red: acc.red + (row.red_cards || 0),
       points: acc.points + row.points,
     }),
-    { played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, points: 0 },
+    { played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, yellow: 0, red: 0, points: 0 },
   );
 
   // Add stats from completed knockout stage matches
@@ -77,6 +79,13 @@ function TeamProfile() {
     const oppScore = isHome ? Number(f.result!.away_score) || 0 : Number(f.result!.home_score) || 0;
     totals.gf += myScore;
     totals.ga += oppScore;
+    if (isHome) {
+      totals.yellow += Number(f.result!.home_yellow_cards) || 0;
+      totals.red += Number(f.result!.home_red_cards) || 0;
+    } else {
+      totals.yellow += Number(f.result!.away_yellow_cards) || 0;
+      totals.red += Number(f.result!.away_red_cards) || 0;
+    }
     if (myScore > oppScore) totals.wins += 1;
     else if (myScore < oppScore) totals.losses += 1;
     else totals.draws += 1;
@@ -117,18 +126,19 @@ function TeamProfile() {
       </header>
 
       <div className="mx-auto max-w-7xl space-y-10 px-4 py-12 sm:px-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard label="Tournaments" value={rows.length} />
           <StatCard label="Championships" value={titles} />
           <StatCard label="Matches Played" value={totals.played} />
           <StatCard label="Win %" value={`${winPct}%`} />
-          <StatCard label="Wins" value={totals.wins} />
-          <StatCard label="Draws" value={totals.draws} />
-          <StatCard label="Losses" value={totals.losses} />
           <StatCard
-            label="Goals"
-            value={`${totals.gf} : ${totals.ga}`}
-            hint={`GD ${totals.gf - totals.ga > 0 ? "+" : ""}${totals.gf - totals.ga}`}
+            label="Discipline"
+            value={
+              <span className="flex items-center gap-2 text-2xl">
+                <span className="text-yellow-400 font-bold">🟨 {totals.yellow}</span>
+                <span className="text-red-400 font-bold">🟥 {totals.red}</span>
+              </span>
+            }
           />
         </div>
 
@@ -136,7 +146,7 @@ function TeamProfile() {
           <h2 className="mb-4 text-2xl">Tournament History</h2>
           {rows.length ? (
             <div className="panel overflow-x-auto">
-              <table className="w-full min-w-[600px] text-sm">
+              <table className="w-full min-w-[660px] text-sm">
                 <thead>
                   <tr className="label-caps border-b border-border/70 text-muted-foreground">
                     <th className="px-4 py-3 text-left">Tournament</th>
@@ -145,6 +155,8 @@ function TeamProfile() {
                     <th className="px-4 py-3 text-center">W</th>
                     <th className="px-4 py-3 text-center">D</th>
                     <th className="px-4 py-3 text-center">L</th>
+                    <th className="px-3 py-3 text-center text-yellow-400" title="Yellow Cards">YC</th>
+                    <th className="px-3 py-3 text-center text-red-400" title="Red Cards">RC</th>
                     <th className="px-4 py-3 text-center">Pts</th>
                   </tr>
                 </thead>
@@ -168,7 +180,17 @@ function TeamProfile() {
                         <td className="px-4 py-3 text-center">{row.wins}</td>
                         <td className="px-4 py-3 text-center">{row.draws}</td>
                         <td className="px-4 py-3 text-center">{row.losses}</td>
-                        <td className="px-4 py-3 text-center text-primary">{row.points}</td>
+                        <td className="px-3 py-3 text-center">
+                          <span className="inline-flex items-center justify-center gap-1 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs font-semibold text-yellow-400 border border-yellow-500/20">
+                            {row.yellow_cards ?? 0}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <span className="inline-flex items-center justify-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 text-xs font-semibold text-red-400 border border-red-500/20">
+                            {row.red_cards ?? 0}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center text-primary font-bold">{row.points}</td>
                       </tr>
                     );
                   })}
