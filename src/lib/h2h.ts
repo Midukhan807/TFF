@@ -152,7 +152,7 @@ export function computeH2HComparison(
         maxMarginA = margin;
         biggestWinA = {
           fixture: f,
-          date: f.scheduled_date || res.played_at || "",
+          date: f.scheduled_date || res.played_at || f.created_at || "",
           tournamentName: f.tournament?.name || "TFF Tournament",
           homeTeamId: f.home_team_id || "",
           awayTeamId: f.away_team_id || "",
@@ -168,7 +168,7 @@ export function computeH2HComparison(
         maxMarginB = margin;
         biggestWinB = {
           fixture: f,
-          date: f.scheduled_date || res.played_at || "",
+          date: f.scheduled_date || res.played_at || f.created_at || "",
           tournamentName: f.tournament?.name || "TFF Tournament",
           homeTeamId: f.home_team_id || "",
           awayTeamId: f.away_team_id || "",
@@ -183,7 +183,7 @@ export function computeH2HComparison(
 
     const matchObj: H2HMatchResult = {
       fixture: f,
-      date: f.scheduled_date || res.played_at || "",
+      date: f.scheduled_date || res.played_at || f.created_at || "",
       tournamentName: f.tournament?.name || "TFF Tournament",
       homeTeamId: f.home_team_id || "",
       awayTeamId: f.away_team_id || "",

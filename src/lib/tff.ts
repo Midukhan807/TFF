@@ -150,7 +150,13 @@ export const FORMAT_LABELS: Record<string, string> = {
 
 export function formatDate(value?: string | null) {
   if (!value) return "TBD";
-  return new Date(`${value}T00:00:00`)
+  let dateObj = new Date(value);
+  if (isNaN(dateObj.getTime())) {
+    dateObj = new Date(`${value}T00:00:00`);
+  }
+  if (isNaN(dateObj.getTime())) return "TBD";
+
+  return dateObj
     .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     .toUpperCase();
 }

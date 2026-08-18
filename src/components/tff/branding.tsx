@@ -36,10 +36,11 @@ export function TeamLogo({
   videoUrl?: string | null | undefined;
   isHovered?: boolean;
   autoPlay?: boolean;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
 }) {
   const sizes = {
+    xs: "size-6 text-[0.55rem]",
     sm: "size-8 text-[0.65rem]",
     md: "size-11 text-xs",
     lg: "size-16 text-base",
