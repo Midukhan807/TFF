@@ -1352,7 +1352,19 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
   const leagueFixtures = allFixtures.filter((f) => f.stage !== "knockout" && !f.round);
   const knockoutFixtures = allFixtures.filter((f) => f.stage === "knockout" || !!f.round);
 
-  const KNOCKOUT_ROUNDS = ["Round of 16", "Quarter Final", "Semi Final", "Third Place", "Final"];
+  const KNOCKOUT_ROUNDS = [
+    "Round of 16",
+    "Quarter Final",
+    "Quarter Final - 1st Leg",
+    "Quarter Final - 2nd Leg",
+    "Semi Final",
+    "Semi Final - 1st Leg",
+    "Semi Final - 2nd Leg",
+    "Third Place",
+    "Final",
+    "Final - 1st Leg",
+    "Final - 2nd Leg",
+  ];
 
   return (
     <div className="panel p-6 space-y-6">
@@ -1564,7 +1576,9 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                 )
               ) : (
                 knockoutFixtures.length > 0 ? (
-                  KNOCKOUT_ROUNDS.filter((r) => knockoutFixtures.some((f) => f.round === r)).map((roundName) => {
+                  [...new Set([...KNOCKOUT_ROUNDS, ...knockoutFixtures.map((f) => f.round).filter(Boolean)])]
+                    .filter((r) => knockoutFixtures.some((f) => f.round === r))
+                    .map((roundName) => {
                     const group = knockoutFixtures.filter((f) => f.round === roundName);
                     return (
                       <div key={roundName} className="border border-primary/40 rounded-lg overflow-hidden bg-primary/5">
