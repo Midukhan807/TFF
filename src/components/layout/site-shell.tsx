@@ -13,6 +13,7 @@ const NAV = [
   { to: "/tournaments", label: "Tournaments" },
   { to: "/teams", label: "Teams" },
   { to: "/h2h", label: "H2H Rivalry" },
+  { to: "/poster", label: "Media Studio" },
   { to: "/rankings", label: "Rankings" },
   { to: "/champions", label: "Hall of Champions" },
   { to: "/about", label: "About TFF" },

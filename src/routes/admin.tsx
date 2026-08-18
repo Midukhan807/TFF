@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Plus, Settings, Users, Trophy, CalendarDays, Loader2, ArrowLeft, Edit, Trash2, Crown, BarChart3 } from "lucide-react";
+import { Plus, Settings, Users, Trophy, CalendarDays, Loader2, ArrowLeft, Edit, Trash2, Crown, BarChart3, Palette } from "lucide-react";
 import { toast } from "sonner";
+import { MatchdayPosterDialog } from "@/components/tff/poster-studio";
 
 import { useIsAdmin } from "@/hooks/use-tff-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -981,6 +982,7 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
   const [awayYellow, setAwayYellow] = useState(0);
   const [homeRed, setHomeRed] = useState(0);
   const [awayRed, setAwayRed] = useState(0);
+  const [posterFixture, setPosterFixture] = useState<any>(null);
 
   // State for adding a fixture manually
   const [newStage, setNewStage] = useState<"league" | "knockout">("league");
@@ -1545,7 +1547,15 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                   </td>
                                   <td className="px-4 py-2.5 text-left font-semibold w-[35%]">{f.away?.name || "TBD"}</td>
                                   <td className="px-2 py-2.5 text-right w-[18%]">
-                                    <div className="flex items-center justify-end gap-1">
+                                     <div className="flex items-center justify-end gap-1">
+                                      <Button
+                                        size="sm" variant="outline"
+                                        className="h-7 text-xs px-2 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/20"
+                                        onClick={() => setPosterFixture(f)}
+                                        title="Create Esports Poster"
+                                      >
+                                        <Palette className="size-3 mr-1" /> Poster
+                                      </Button>
                                       <Button
                                         size="sm" variant="secondary"
                                         className="h-7 text-xs px-2"
@@ -1604,6 +1614,14 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                 <td className="px-2 py-2.5 text-right w-[18%]">
                                   <div className="flex items-center justify-end gap-1">
                                     <Button
+                                      size="sm" variant="outline"
+                                      className="h-7 text-xs px-2 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/20"
+                                      onClick={() => setPosterFixture(f)}
+                                      title="Create Esports Poster"
+                                    >
+                                      <Palette className="size-3 mr-1" /> Poster
+                                    </Button>
+                                    <Button
                                       size="sm" variant="secondary"
                                       className="h-7 text-xs px-2 border border-primary/40"
                                       onClick={() => openScoreDialog(f)}
@@ -1627,6 +1645,12 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                 )
               )}
             </div>
+
+            <MatchdayPosterDialog
+              fixture={posterFixture}
+              isOpen={!!posterFixture}
+              onClose={() => setPosterFixture(null)}
+            />
           </div>
 
           {selectedFixture && (

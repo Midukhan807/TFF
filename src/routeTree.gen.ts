@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChampionsRouteImport } from './routes/champions'
 import { Route as H2hRouteImport } from './routes/h2h'
+import { Route as PosterRouteImport } from './routes/poster'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
@@ -51,6 +52,11 @@ const H2hRoute = H2hRouteImport.update({
   path: '/h2h',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PosterRoute = PosterRouteImport.update({
+  id: '/poster',
+  path: '/poster',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RankingsRoute = RankingsRouteImport.update({
   id: '/rankings',
   path: '/rankings',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/champions': typeof ChampionsRoute
   '/h2h': typeof H2hRoute
+  '/poster': typeof PosterRoute
   '/rankings': typeof RankingsRoute
   '/teams': typeof TeamsRoute
   '/tournaments': typeof TournamentsRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/champions': typeof ChampionsRoute
   '/h2h': typeof H2hRoute
+  '/poster': typeof PosterRoute
   '/rankings': typeof RankingsRoute
   '/teams': typeof TeamsRoute
   '/tournaments': typeof TournamentsRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/champions': typeof ChampionsRoute
   '/h2h': typeof H2hRoute
+  '/poster': typeof PosterRoute
   '/rankings': typeof RankingsRoute
   '/teams': typeof TeamsRoute
   '/tournaments': typeof TournamentsRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/champions'
     | '/h2h'
+    | '/poster'
     | '/rankings'
     | '/teams'
     | '/tournaments'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/champions'
     | '/h2h'
+    | '/poster'
     | '/rankings'
     | '/teams'
     | '/tournaments'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/champions'
     | '/h2h'
+    | '/poster'
     | '/rankings'
     | '/teams'
     | '/tournaments'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ChampionsRoute: typeof ChampionsRoute
   H2hRoute: typeof H2hRoute
+  PosterRoute: typeof PosterRoute
   RankingsRoute: typeof RankingsRoute
   TeamsRoute: typeof TeamsRoute
   TournamentsRoute: typeof TournamentsRoute
@@ -217,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof H2hRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/poster': {
+      id: '/poster'
+      path: '/poster'
+      fullPath: '/poster'
+      preLoaderRoute: typeof PosterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rankings': {
       id: '/rankings'
       path: '/rankings'
@@ -262,6 +282,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ChampionsRoute: ChampionsRoute,
   H2hRoute: H2hRoute,
+  PosterRoute: PosterRoute,
   RankingsRoute: RankingsRoute,
   TeamsRoute: TeamsRoute,
   TournamentsRoute: TournamentsRoute,
