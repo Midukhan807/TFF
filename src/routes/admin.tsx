@@ -1,9 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Plus, Settings, Users, Trophy, CalendarDays, Loader2, ArrowLeft, Edit, Trash2, Crown, BarChart3, Palette } from "lucide-react";
+import { Plus, Settings, Users, Trophy, CalendarDays, Loader2, ArrowLeft, Edit, Trash2, Crown, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
-import { MatchdayPosterDialog } from "@/components/tff/poster-studio";
 
 import { useIsAdmin } from "@/hooks/use-tff-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -982,7 +981,6 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
   const [awayYellow, setAwayYellow] = useState(0);
   const [homeRed, setHomeRed] = useState(0);
   const [awayRed, setAwayRed] = useState(0);
-  const [posterFixture, setPosterFixture] = useState<any>(null);
 
   // State for adding a fixture manually
   const [newStage, setNewStage] = useState<"league" | "knockout">("league");
@@ -1532,30 +1530,22 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                                   <td className="px-4 py-2.5 text-right font-semibold w-[35%]">{f.home?.name || "TBD"}</td>
                                   <td className="px-2 py-2.5 text-center w-[12%]">
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${f.status === "completed"
-                                        ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                        : "bg-primary/20 text-primary"
+                                      ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                      : "bg-primary/20 text-primary"
                                       }`}>
                                       {f.status === "completed"
                                         ? (() => {
-                                            const { homePen, awayPen } = parseResultPenalties(f.result);
-                                            return homePen !== null && awayPen !== null
-                                              ? `${f.result?.home_score}-${f.result?.away_score} (${homePen}-${awayPen}p)`
-                                              : `${f.result?.home_score} - ${f.result?.away_score}`;
-                                          })()
+                                          const { homePen, awayPen } = parseResultPenalties(f.result);
+                                          return homePen !== null && awayPen !== null
+                                            ? `${f.result?.home_score}-${f.result?.away_score} (${homePen}-${awayPen}p)`
+                                            : `${f.result?.home_score} - ${f.result?.away_score}`;
+                                        })()
                                         : "VS"}
                                     </span>
                                   </td>
                                   <td className="px-4 py-2.5 text-left font-semibold w-[35%]">{f.away?.name || "TBD"}</td>
                                   <td className="px-2 py-2.5 text-right w-[18%]">
-                                     <div className="flex items-center justify-end gap-1">
-                                      <Button
-                                        size="sm" variant="outline"
-                                        className="h-7 text-xs px-2 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/20"
-                                        onClick={() => setPosterFixture(f)}
-                                        title="Create Esports Poster"
-                                      >
-                                        <Palette className="size-3 mr-1" /> Poster
-                                      </Button>
+                                    <div className="flex items-center justify-end gap-1">
                                       <Button
                                         size="sm" variant="secondary"
                                         className="h-7 text-xs px-2"
@@ -1583,74 +1573,60 @@ function MatchesTabContent({ tournaments }: { tournaments: any[] }) {
                   [...new Set([...KNOCKOUT_ROUNDS, ...knockoutFixtures.map((f) => f.round).filter(Boolean)])]
                     .filter((r) => knockoutFixtures.some((f) => f.round === r))
                     .map((roundName) => {
-                    const group = knockoutFixtures.filter((f) => f.round === roundName);
-                    return (
-                      <div key={roundName} className="border border-primary/40 rounded-lg overflow-hidden bg-primary/5">
-                        <div className="bg-primary/20 px-4 py-2 flex items-center justify-between border-b border-primary/30">
-                          <span className="font-display text-sm font-bold tracking-wider text-primary uppercase">{roundName}</span>
-                          <span className="text-xs text-primary/80 font-semibold">{group.length} match{group.length !== 1 ? "es" : ""}</span>
-                        </div>
-                        <table className="w-full text-sm">
-                          <tbody className="divide-y divide-border/30">
-                            {group.map((f) => (
-                              <tr key={f.id} className="hover:bg-primary/10 transition-colors">
-                                <td className="px-4 py-2.5 text-right font-semibold w-[35%]">{f.home?.name || "TBD"}</td>
-                                <td className="px-2 py-2.5 text-center w-[12%]">
-                                  <span className={`px-2.5 py-0.5 rounded text-xs font-bold ${f.status === "completed"
+                      const group = knockoutFixtures.filter((f) => f.round === roundName);
+                      return (
+                        <div key={roundName} className="border border-primary/40 rounded-lg overflow-hidden bg-primary/5">
+                          <div className="bg-primary/20 px-4 py-2 flex items-center justify-between border-b border-primary/30">
+                            <span className="font-display text-sm font-bold tracking-wider text-primary uppercase">{roundName}</span>
+                            <span className="text-xs text-primary/80 font-semibold">{group.length} match{group.length !== 1 ? "es" : ""}</span>
+                          </div>
+                          <table className="w-full text-sm">
+                            <tbody className="divide-y divide-border/30">
+                              {group.map((f) => (
+                                <tr key={f.id} className="hover:bg-primary/10 transition-colors">
+                                  <td className="px-4 py-2.5 text-right font-semibold w-[35%]">{f.home?.name || "TBD"}</td>
+                                  <td className="px-2 py-2.5 text-center w-[12%]">
+                                    <span className={`px-2.5 py-0.5 rounded text-xs font-bold ${f.status === "completed"
                                       ? "bg-green-500/20 text-green-400 border border-green-500/30"
                                       : "bg-primary/20 text-primary border border-primary/30"
-                                    }`}>
-                                    {f.status === "completed"
-                                      ? (() => {
+                                      }`}>
+                                      {f.status === "completed"
+                                        ? (() => {
                                           const { homePen, awayPen } = parseResultPenalties(f.result);
                                           return homePen !== null && awayPen !== null
                                             ? `${f.result?.home_score}-${f.result?.away_score} (${homePen}-${awayPen}p)`
                                             : `${f.result?.home_score} - ${f.result?.away_score}`;
                                         })()
-                                      : "VS"}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-2.5 text-left font-semibold w-[35%]">{f.away?.name || "TBD"}</td>
-                                <td className="px-2 py-2.5 text-right w-[18%]">
-                                  <div className="flex items-center justify-end gap-1">
-                                    <Button
-                                      size="sm" variant="outline"
-                                      className="h-7 text-xs px-2 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/20"
-                                      onClick={() => setPosterFixture(f)}
-                                      title="Create Esports Poster"
-                                    >
-                                      <Palette className="size-3 mr-1" /> Poster
-                                    </Button>
-                                    <Button
-                                      size="sm" variant="secondary"
-                                      className="h-7 text-xs px-2 border border-primary/40"
-                                      onClick={() => openScoreDialog(f)}
-                                    >
-                                      {f.status === "completed" ? "Edit" : "Score"}
-                                    </Button>
-                                    <Button size="icon" variant="ghost" className="size-7 hover:text-destructive" onClick={() => deleteFixture(f.id)}>
-                                      <Trash2 className="size-3" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })
+                                        : "VS"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-2.5 text-left font-semibold w-[35%]">{f.away?.name || "TBD"}</td>
+                                  <td className="px-2 py-2.5 text-right w-[18%]">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button
+                                        size="sm" variant="secondary"
+                                        className="h-7 text-xs px-2 border border-primary/40"
+                                        onClick={() => openScoreDialog(f)}
+                                      >
+                                        {f.status === "completed" ? "Edit" : "Score"}
+                                      </Button>
+                                      <Button size="icon" variant="ghost" className="size-7 hover:text-destructive" onClick={() => deleteFixture(f.id)}>
+                                        <Trash2 className="size-3" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })
                 ) : (
                   <p className="text-xs text-muted-foreground p-6 text-center">No knockout fixtures yet. Click "Auto-Generate Top 4 Knockout" or select "Knockout Stage" in the manual form above.</p>
                 )
               )}
             </div>
-
-            <MatchdayPosterDialog
-              fixture={posterFixture}
-              isOpen={!!posterFixture}
-              onClose={() => setPosterFixture(null)}
-            />
           </div>
 
           {selectedFixture && (
