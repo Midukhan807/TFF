@@ -17,7 +17,7 @@ interface TournamentAwardsProps {
   completedFixtures: FixtureWithTeams[];
   standings: StandingRow[];
   teamsMap: Map<string, Team>;
-  champion?: Champion | null;
+  champion?: Champion | null | undefined;
   playerStats?: PlayerStat[];
 }
 

@@ -361,7 +361,7 @@ function TournamentDetail() {
             completedFixtures={completed}
             standings={standings.data ?? []}
             teamsMap={teamMap}
-            champion={champion.data}
+            champion={champion}
             playerStats={players.data ?? []}
           />
         )}
@@ -612,3 +612,5 @@ function Statistics({
     </div>
   );
 }
+// Clean HMR trigger
+
