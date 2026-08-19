@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Award, Crown, Flame, Medal, Trophy } from "lucide-react";
+import { ArrowUpRight, Award, Crown, Flame, Medal, Shield, Trophy } from "lucide-react";
 
 import { TeamLogo } from "@/components/tff/branding";
 import { cn } from "@/lib/utils";
