@@ -256,12 +256,12 @@ function BracketMatchCard({
     const res2 = f2.result;
 
     return (
-      <div className="panel p-3.5 space-y-2 border-primary/30 bg-card/70 hover:border-primary/60 transition-all shadow-md relative group">
-        <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground border-b border-border/40 pb-1">
-          <span className="text-primary">2-Legged Tie</span>
+      <div className="panel p-2 space-y-1 border-primary/30 bg-card/80 hover:border-primary/60 transition-all shadow-sm relative group w-full text-xs">
+        <div className="flex items-center justify-between text-[9px] uppercase font-bold tracking-wider text-muted-foreground border-b border-border/40 pb-0.5">
+          <span className="text-primary truncate">2-Legged Tie</span>
           {agg.isCompleted && (
-            <span className="text-amber-400 font-extrabold">
-              Agg: {agg.totalGoalsA} - {agg.totalGoalsB}
+            <span className="text-amber-400 font-extrabold shrink-0 ml-1">
+              Agg: {agg.totalGoalsA}-{agg.totalGoalsB}
             </span>
           )}
         </div>
@@ -273,7 +273,7 @@ function BracketMatchCard({
           <div
             key={i}
             className={cn(
-              "flex items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors",
+              "flex items-center gap-1.5 rounded px-1.5 py-1 transition-colors min-w-0",
               side.won && "bg-primary/20 border border-primary/40"
             )}
           >
@@ -282,25 +282,25 @@ function BracketMatchCard({
               shortName={side.team?.short_name}
               color={side.team?.team_color}
               logoUrl={side.team?.logo_url}
-              size="sm"
+              size="xs"
             />
             <span
               className={cn(
-                "flex-1 truncate text-sm",
+                "flex-1 truncate text-xs",
                 side.won ? "font-bold text-primary" : "text-muted-foreground"
               )}
             >
               {side.team?.name ?? "TBD"}
             </span>
-            <div className="text-right flex items-center gap-1.5 text-xs">
-              <span className="text-muted-foreground font-mono">
+            <div className="text-right flex items-center gap-1 text-[11px] shrink-0">
+              <span className="text-muted-foreground font-mono text-[10px]">
                 ({side.scoreL1 ?? "-"}-{side.scoreL2 ?? "-"})
               </span>
-              <span className="font-display text-base font-bold text-foreground">
+              <span className="font-display text-xs font-bold text-foreground">
                 {agg.isCompleted ? side.total : "-"}
               </span>
               {agg.isPenalties && side.pen !== null && side.pen !== undefined && (
-                <span className="text-[10px] font-extrabold text-amber-400">({side.pen}p)</span>
+                <span className="text-[9px] font-extrabold text-amber-400">({side.pen}p)</span>
               )}
             </div>
           </div>
@@ -317,7 +317,7 @@ function BracketMatchCard({
   const awayWon = winnerTeamId === f1.away_team_id;
 
   return (
-    <div className="panel p-3 bg-card/70 border-primary/30 hover:border-primary/60 transition-all shadow-md relative group">
+    <div className="panel p-2 bg-card/80 border-primary/30 hover:border-primary/60 transition-all shadow-sm relative group w-full text-xs">
       {[
         { team: f1.home, score: result?.home_score, pen: homePen, won: homeWon },
         { team: f1.away, score: result?.away_score, pen: awayPen, won: awayWon },
@@ -325,7 +325,7 @@ function BracketMatchCard({
         <div
           key={i}
           className={cn(
-            "flex items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors",
+            "flex items-center gap-1.5 rounded px-1.5 py-1 transition-colors min-w-0",
             side.won && "bg-primary/20 border border-primary/40"
           )}
         >
@@ -334,20 +334,20 @@ function BracketMatchCard({
             shortName={side.team?.short_name}
             color={side.team?.team_color}
             logoUrl={side.team?.logo_url}
-            size="sm"
+            size="xs"
           />
           <span
             className={cn(
-              "flex-1 truncate text-sm",
+              "flex-1 truncate text-xs",
               side.won ? "font-semibold text-primary" : "text-muted-foreground"
             )}
           >
             {side.team?.name ?? "TBD"}
           </span>
-          <div className="text-right">
-            <span className="font-display text-lg font-bold text-foreground">{side.score ?? "-"}</span>
+          <div className="text-right shrink-0">
+            <span className="font-display text-sm font-bold text-foreground">{side.score ?? "-"}</span>
             {isPenalties && side.pen !== null && side.pen !== undefined && (
-              <span className="ml-1 text-[11px] font-bold text-amber-400">({side.pen}p)</span>
+              <span className="ml-1 text-[10px] font-bold text-amber-400">({side.pen}p)</span>
             )}
           </div>
         </div>
@@ -407,13 +407,13 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
   const allRoundFixtures = (roundKey: string) => fixtures.filter((f) => f.round && f.round.startsWith(roundKey));
 
   return (
-    <div className="overflow-x-auto pb-4 pt-2">
-      <div className="flex min-w-max items-center justify-center gap-6 px-4">
+    <div className="w-full overflow-x-auto pb-2 pt-1">
+      <div className="flex w-full min-w-[700px] items-center justify-between gap-2.5 sm:gap-3 px-1 sm:px-2">
         {/* LEFT BRANCH: R16 (Left) */}
         {r16Part.left.length > 0 && (
-          <div className="w-72 shrink-0 flex flex-col h-full">
-            <p className="label-caps mb-3 text-center text-primary font-bold tracking-wider">ROUND OF 16</p>
-            <div className="flex flex-col justify-around gap-4 flex-1">
+          <div className="flex-1 min-w-0 max-w-[210px] shrink-0 flex flex-col h-full">
+            <p className="label-caps mb-2 text-center text-primary font-bold tracking-wider text-[11px]">ROUND OF 16</p>
+            <div className="flex flex-col justify-around gap-2.5 flex-1">
               {r16Part.left.map((f) => (
                 <BracketMatchCard key={f.id} f1={f} stepFixtures={allRoundFixtures("Round of 16")} />
               ))}
@@ -423,9 +423,9 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
 
         {/* LEFT BRANCH: QUARTER FINAL (Left) */}
         {qfPart.left.length > 0 && (
-          <div className="w-72 shrink-0 flex flex-col h-full">
-            <p className="label-caps mb-3 text-center text-primary font-bold tracking-wider">QUARTER FINAL</p>
-            <div className="flex flex-col justify-around gap-4 flex-1">
+          <div className="flex-1 min-w-0 max-w-[210px] shrink-0 flex flex-col h-full">
+            <p className="label-caps mb-2 text-center text-primary font-bold tracking-wider text-[11px]">QUARTER FINAL</p>
+            <div className="flex flex-col justify-around gap-2.5 flex-1">
               {qfPart.left.map((f) => (
                 <BracketMatchCard key={f.id} f1={f} stepFixtures={allRoundFixtures("Quarter Final")} />
               ))}
@@ -435,9 +435,9 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
 
         {/* LEFT BRANCH: SEMI FINAL 1 */}
         {sfPart.left.length > 0 && (
-          <div className="w-72 shrink-0 flex flex-col h-full">
-            <p className="label-caps mb-3 text-center text-primary font-bold tracking-wider">SEMI FINAL</p>
-            <div className="flex flex-col justify-around gap-4 flex-1">
+          <div className="flex-1 min-w-0 max-w-[210px] shrink-0 flex flex-col h-full">
+            <p className="label-caps mb-2 text-center text-primary font-bold tracking-wider text-[11px]">SEMI FINAL</p>
+            <div className="flex flex-col justify-around gap-2.5 flex-1">
               {sfPart.left.map((f) => (
                 <BracketMatchCard key={f.id} f1={f} stepFixtures={allRoundFixtures("Semi Final")} />
               ))}
@@ -446,11 +446,11 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
         )}
 
         {/* CENTER COLUMN: FINAL & CHAMPION */}
-        <div className="w-80 shrink-0 flex flex-col items-center justify-center gap-5 h-full">
+        <div className="flex-1 min-w-0 max-w-[230px] shrink-0 flex flex-col items-center justify-center gap-3 h-full">
           {/* FINAL MATCH */}
           {finalLeg1.length > 0 && (
             <div className="w-full">
-              <p className="label-caps mb-3 text-center text-primary font-bold tracking-wider text-base flex items-center justify-center gap-1.5">
+              <p className="label-caps mb-2 text-center text-primary font-bold tracking-wider text-xs flex items-center justify-center gap-1">
                 FINAL 🏆
               </p>
               {finalLeg1.map((f) => (
@@ -460,13 +460,13 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
           )}
 
           {/* CHAMPION CARD */}
-          <div className="w-full panel flex flex-col items-center justify-center gap-2 p-5 text-center bg-gradient-to-b from-amber-950/40 via-card/90 to-card border-amber-500/40 shadow-[0_0_30px_rgba(245,158,11,0.15)] rounded-2xl">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 shadow-md">
-              <Crown className="size-6 animate-pulse" />
+          <div className="w-full panel flex flex-col items-center justify-center gap-1.5 p-3.5 text-center bg-gradient-to-b from-amber-950/40 via-card/90 to-card border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.12)] rounded-xl">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 shadow-sm">
+              <Crown className="size-4 animate-pulse" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-amber-400 font-extrabold">CHAMPION</p>
-              <p className="font-display text-2xl font-black text-amber-400 mt-0.5">
+              <p className="text-[9px] uppercase tracking-widest text-amber-400 font-extrabold">CHAMPION</p>
+              <p className="font-display text-lg font-black text-amber-400 mt-0.5 truncate max-w-[190px]">
                 {championName ?? "TBD"}
               </p>
             </div>
@@ -474,9 +474,9 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
 
           {/* 3RD PLACE MATCH (IF APPLICABLE) */}
           {thirdPlaceLeg1.length > 0 && (
-            <div className="w-full mt-1">
-              <p className="label-caps mb-2 text-center text-muted-foreground font-bold tracking-wider text-xs">
-                3RD PLACE MATCH 🥉
+            <div className="w-full mt-0.5">
+              <p className="label-caps mb-1.5 text-center text-muted-foreground font-bold tracking-wider text-[10px]">
+                3RD PLACE 🥉
               </p>
               {thirdPlaceLeg1.map((f) => (
                 <BracketMatchCard key={f.id} f1={f} stepFixtures={allRoundFixtures("Third Place")} />
@@ -487,9 +487,9 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
 
         {/* RIGHT BRANCH: SEMI FINAL 2 */}
         {sfPart.right.length > 0 && (
-          <div className="w-72 shrink-0 flex flex-col h-full">
-            <p className="label-caps mb-3 text-center text-primary font-bold tracking-wider">SEMI FINAL</p>
-            <div className="flex flex-col justify-around gap-4 flex-1">
+          <div className="flex-1 min-w-0 max-w-[210px] shrink-0 flex flex-col h-full">
+            <p className="label-caps mb-2 text-center text-primary font-bold tracking-wider text-[11px]">SEMI FINAL</p>
+            <div className="flex flex-col justify-around gap-2.5 flex-1">
               {sfPart.right.map((f) => (
                 <BracketMatchCard key={f.id} f1={f} stepFixtures={allRoundFixtures("Semi Final")} />
               ))}
@@ -499,9 +499,9 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
 
         {/* RIGHT BRANCH: QUARTER FINAL (Right) */}
         {qfPart.right.length > 0 && (
-          <div className="w-72 shrink-0 flex flex-col h-full">
-            <p className="label-caps mb-3 text-center text-primary font-bold tracking-wider">QUARTER FINAL</p>
-            <div className="flex flex-col justify-around gap-4 flex-1">
+          <div className="flex-1 min-w-0 max-w-[210px] shrink-0 flex flex-col h-full">
+            <p className="label-caps mb-2 text-center text-primary font-bold tracking-wider text-[11px]">QUARTER FINAL</p>
+            <div className="flex flex-col justify-around gap-2.5 flex-1">
               {qfPart.right.map((f) => (
                 <BracketMatchCard key={f.id} f1={f} stepFixtures={allRoundFixtures("Quarter Final")} />
               ))}
@@ -511,9 +511,9 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
 
         {/* RIGHT BRANCH: R16 (Right) */}
         {r16Part.right.length > 0 && (
-          <div className="w-72 shrink-0 flex flex-col h-full">
-            <p className="label-caps mb-3 text-center text-primary font-bold tracking-wider">ROUND OF 16</p>
-            <div className="flex flex-col justify-around gap-4 flex-1">
+          <div className="flex-1 min-w-0 max-w-[210px] shrink-0 flex flex-col h-full">
+            <p className="label-caps mb-2 text-center text-primary font-bold tracking-wider text-[11px]">ROUND OF 16</p>
+            <div className="flex flex-col justify-around gap-2.5 flex-1">
               {r16Part.right.map((f) => (
                 <BracketMatchCard key={f.id} f1={f} stepFixtures={allRoundFixtures("Round of 16")} />
               ))}
