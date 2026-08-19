@@ -171,6 +171,7 @@ function TeamProfile() {
                           <Link
                             to="/tournament/$slug"
                             params={{ slug: tournament.slug }}
+                            search={{ tab: "overview" }}
                             className="font-semibold hover:text-primary"
                           >
                             {tournament.name}

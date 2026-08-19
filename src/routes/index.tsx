@@ -314,7 +314,7 @@ function ActiveTournament({
             </div>
           </div>
           <Button asChild>
-            <Link to="/tournament/$slug" params={{ slug }}>
+            <Link to="/tournament/$slug" params={{ slug }} search={{ tab: "overview" }}>
               View Tournament <ArrowRight className="size-4" />
             </Link>
           </Button>

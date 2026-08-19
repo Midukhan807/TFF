@@ -58,6 +58,7 @@ export function ChampionCard({
         <Link
           to="/tournament/$slug"
           params={{ slug: tournament.slug }}
+          search={{ tab: "overview" }}
           className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-amber-400"
         >
           <span>{tournament.name}</span>
