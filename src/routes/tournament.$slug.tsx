@@ -455,6 +455,9 @@ function FixtureList({ fixtures }: { fixtures: FixtureWithTeams[] }) {
         );
       })}
     </div>
+  );
+}
+
 function Statistics({
   completed,
   goals,
