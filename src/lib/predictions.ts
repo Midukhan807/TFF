@@ -91,22 +91,34 @@ async function fetchGlobalCloudVotes(): Promise<PredictionVote[]> {
   }
 }
 
-async function saveGlobalCloudVote(vote: PredictionVote): Promise<void> {
+async function syncGlobalCloudVotes(votesToSync: PredictionVote[]): Promise<PredictionVote[]> {
   try {
     const existingCloudVotes = await fetchGlobalCloudVotes();
-    const filtered = existingCloudVotes.filter(
-      (v) => !(v.fixture_id === vote.fixture_id && v.visitor_id === vote.visitor_id)
-    );
-    filtered.push(vote);
-    await fetch(GLOBAL_PREDICTIONS_URL, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: "TFF_PREDICTIONS_GLOBAL_STORE_V1",
-        data: { votes: filtered },
-      }),
-    });
-  } catch {}
+    const map = new Map<string, PredictionVote>();
+
+    for (const v of [...existingCloudVotes, ...votesToSync]) {
+      if (v.fixture_id && v.visitor_id) {
+        map.set(`${v.fixture_id}_${v.visitor_id}`, v);
+      }
+    }
+
+    const merged = Array.from(map.values());
+
+    if (merged.length > existingCloudVotes.length || votesToSync.length > 0) {
+      await fetch(GLOBAL_PREDICTIONS_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "TFF_PREDICTIONS_GLOBAL_STORE_V1",
+          data: { votes: merged },
+        }),
+      });
+    }
+
+    return merged;
+  } catch {
+    return votesToSync;
+  }
 }
 
 // Fetch prediction votes for a single fixture
@@ -125,11 +137,11 @@ export async function fetchAllPredictions(): Promise<PredictionVote[]> {
     }
   } catch {}
 
-  const cloudVotes = await fetchGlobalCloudVotes();
   const localVotes = getLocalVotes();
+  const syncedVotes = await syncGlobalCloudVotes([...dbVotes, ...localVotes]);
 
   const combinedMap = new Map<string, PredictionVote>();
-  for (const v of [...dbVotes, ...cloudVotes, ...localVotes]) {
+  for (const v of [...dbVotes, ...syncedVotes, ...localVotes]) {
     combinedMap.set(`${v.fixture_id}_${v.visitor_id}`, v);
   }
   return Array.from(combinedMap.values());
@@ -158,7 +170,7 @@ export async function submitPredictionVote(
   };
 
   saveLocalVote(votePayload);
-  await saveGlobalCloudVote(votePayload);
+  await syncGlobalCloudVotes([votePayload]);
 
   try {
     await supabase
