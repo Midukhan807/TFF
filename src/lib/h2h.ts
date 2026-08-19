@@ -67,8 +67,8 @@ export function computeForm(teamId: string, allFixtures: FixtureWithTeams[], lim
 
   return completed.map((f) => {
     const isHome = f.home_team_id === teamId;
-    const myScore = isHome ? Number(f.result!.home_score) || 0 : Number(f.result!.away_score) || 0;
-    const oppScore = isHome ? Number(f.result!.away_score) || 0 : Number(f.result!.home_score) || 0;
+    const myScore = isHome ? Number(f.result?.home_score) || 0 : Number(f.result?.away_score) || 0;
+    const oppScore = isHome ? Number(f.result?.away_score) || 0 : Number(f.result?.home_score) || 0;
     const opp = isHome ? f.away : f.home;
 
     let res: "W" | "D" | "L" = "D";
@@ -219,9 +219,9 @@ export function computeH2HComparison(
     );
     for (const f of koCompleted) {
       p += 1;
-      const isHome = f.home_team_id === teamId;
-      const myScore = isHome ? Number(f.result!.home_score) || 0 : Number(f.result!.away_score) || 0;
-      const oppScore = isHome ? Number(f.result!.away_score) || 0 : Number(f.result!.home_score) || 0;
+    const isHome = f.home_team_id === teamId;
+    const myScore = isHome ? Number(f.result?.home_score) || 0 : Number(f.result?.away_score) || 0;
+    const oppScore = isHome ? Number(f.result?.away_score) || 0 : Number(f.result?.home_score) || 0;
       if (myScore > oppScore) w += 1;
     }
     const winPct = p > 0 ? (w / p) * 100 : 50;

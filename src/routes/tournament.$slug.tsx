@@ -122,7 +122,7 @@ function TournamentDetail() {
   const leader = ranked[0] ? teamMap.get(ranked[0].team_id) : null;
   const champion = (champions.data ?? []).find((c) => c.tournament_id === tournament.id);
   const goals = completed.reduce(
-    (sum, f) => sum + (f.result!.home_score + f.result!.away_score),
+    (sum, f) => sum + ((f.result?.home_score ?? 0) + (f.result?.away_score ?? 0)),
     0,
   );
 
@@ -455,9 +455,6 @@ function FixtureList({ fixtures }: { fixtures: FixtureWithTeams[] }) {
         );
       })}
     </div>
-  );
-}
-
 function Statistics({
   completed,
   goals,
@@ -471,15 +468,22 @@ function Statistics({
   teamNames: Map<string, { name: string }>;
   players: { player_name: string; goals: number; assists: number; motm: number }[];
 }) {
-  const biggest = [...completed].sort(
+  const completedWithResults = completed.filter(
+    (f) => f.result && f.result.home_score !== null && f.result.home_score !== undefined
+  );
+
+  const biggest = [...completedWithResults].sort(
     (a, b) =>
-      Math.abs(b.result!.home_score - b.result!.away_score) -
-      Math.abs(a.result!.home_score - a.result!.away_score),
+      Math.abs((b.result?.home_score ?? 0) - (b.result?.away_score ?? 0)) -
+      Math.abs((a.result?.home_score ?? 0) - (a.result?.away_score ?? 0)),
   )[0];
-  const highest = [...completed].sort(
+
+  const highest = [...completedWithResults].sort(
     (a, b) =>
-      b.result!.home_score + b.result!.away_score - (a.result!.home_score + a.result!.away_score),
+      ((b.result?.home_score ?? 0) + (b.result?.away_score ?? 0)) -
+      ((a.result?.home_score ?? 0) + (a.result?.away_score ?? 0)),
   )[0];
+
   const mostWins = [...ranked].sort((a, b) => b.wins - a.wins)[0];
   const bestDefense = [...ranked].sort((a, b) => a.goals_against - b.goals_against)[0];
   const mostGoals = [...ranked].sort((a, b) => b.goals_for - a.goals_for)[0];
@@ -524,8 +528,8 @@ function Statistics({
         <StatCard
           label="Biggest Victory"
           value={
-            biggest
-              ? `${biggest.result!.home_score}-${biggest.result!.away_score}`
+            biggest && biggest.result
+              ? `${biggest.result.home_score}-${biggest.result.away_score}`
               : "—"
           }
           hint={biggest ? `${biggest.home?.name} vs ${biggest.away?.name}` : undefined}
@@ -561,11 +565,11 @@ function Statistics({
         />
       </div>
 
-      {highest && (
+      {highest && highest.result && (
         <div className="panel p-6">
           <p className="label-caps text-primary">Highest scoring match</p>
           <p className="font-display mt-2 text-3xl">
-            {highest.home?.name} {highest.result!.home_score} — {highest.result!.away_score}{" "}
+            {highest.home?.name} {highest.result.home_score} — {highest.result.away_score}{" "}
             {highest.away?.name}
           </p>
         </div>

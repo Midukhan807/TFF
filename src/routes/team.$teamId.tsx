@@ -76,16 +76,16 @@ function TeamProfile() {
   for (const f of knockoutCompleted) {
     totals.played += 1;
     const isHome = f.home_team_id === teamId;
-    const myScore = isHome ? Number(f.result!.home_score) || 0 : Number(f.result!.away_score) || 0;
-    const oppScore = isHome ? Number(f.result!.away_score) || 0 : Number(f.result!.home_score) || 0;
+    const myScore = isHome ? Number(f.result?.home_score) || 0 : Number(f.result?.away_score) || 0;
+    const oppScore = isHome ? Number(f.result?.away_score) || 0 : Number(f.result?.home_score) || 0;
     totals.gf += myScore;
     totals.ga += oppScore;
     if (isHome) {
-      totals.yellow += Number(f.result!.home_yellow_cards) || 0;
-      totals.red += Number(f.result!.home_red_cards) || 0;
+      totals.yellow += Number(f.result?.home_yellow_cards) || 0;
+      totals.red += Number(f.result?.home_red_cards) || 0;
     } else {
-      totals.yellow += Number(f.result!.away_yellow_cards) || 0;
-      totals.red += Number(f.result!.away_red_cards) || 0;
+      totals.yellow += Number(f.result?.away_yellow_cards) || 0;
+      totals.red += Number(f.result?.away_red_cards) || 0;
     }
     if (myScore > oppScore) totals.wins += 1;
     else if (myScore < oppScore) totals.losses += 1;
