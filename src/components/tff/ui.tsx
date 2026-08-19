@@ -394,25 +394,30 @@ export function TournamentCard({
 
 export function FixtureCard({ fixture }: { fixture: FixtureWithTeams }) {
   return (
-    <div className="panel flex flex-col gap-3 p-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="min-w-40 shrink-0">
-          <p className="label-caps text-primary">{fixture.tournament?.name ?? "TFF"}</p>
-          <p className="text-xs text-muted-foreground">{fixture.round ?? "Fixture"}</p>
+    <div className="panel flex flex-col gap-3 p-4 overflow-hidden">
+      {/* Top Bar: Tournament & Round on Left, Date & Status Badge on Right */}
+      <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
+        <div className="min-w-0 flex-1">
+          <p className="label-caps text-primary truncate">{fixture.tournament?.name ?? "TFF"}</p>
+          <p className="text-xs text-muted-foreground truncate">{fixture.round ?? "Fixture"}</p>
         </div>
-        <div className="flex flex-1 items-center justify-between gap-3">
-          <TeamSide team={fixture.home} align="left" />
-          <div className="shrink-0 text-center">
-            <p className="font-display text-lg text-muted-foreground">VS</p>
-            <p className="text-xs text-muted-foreground">{formatTime(fixture.scheduled_time)}</p>
-          </div>
-          <TeamSide team={fixture.away} align="right" />
-        </div>
-        <div className="shrink-0 text-left sm:text-right">
-          <p className="label-caps text-muted-foreground">{formatDate(fixture.scheduled_date)}</p>
+        <div className="flex items-center gap-2 shrink-0 text-right">
+          <p className="label-caps text-muted-foreground text-[11px] font-medium hidden sm:block">{formatDate(fixture.scheduled_date)}</p>
           <StatusBadge status={fixture.status} />
         </div>
       </div>
+
+      {/* Center: Home Team, VS / Time, Away Team */}
+      <div className="flex items-center justify-between gap-2 sm:gap-4 py-1 min-w-0">
+        <TeamSide team={fixture.home} align="left" />
+        <div className="shrink-0 text-center px-1 sm:px-2">
+          <p className="font-display text-base sm:text-lg font-bold text-muted-foreground leading-none">VS</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{formatTime(fixture.scheduled_time)}</p>
+        </div>
+        <TeamSide team={fixture.away} align="right" />
+      </div>
+
+      {/* Bottom: Prediction Poll */}
       <div className="border-t border-border/40 pt-2.5">
         <MatchPredictionPoll fixture={fixture} compact />
       </div>
@@ -429,16 +434,16 @@ export function ResultCard({ fixture }: { fixture: FixtureWithTeams }) {
   const awayWin = winnerTeamId === fixture.away_team_id;
 
   return (
-    <div className="panel p-4">
+    <div className="panel p-4 overflow-hidden">
       <div className="flex items-center justify-between gap-2">
-        <p className="label-caps text-primary">{fixture.tournament?.name ?? "TFF"}</p>
-        <p className="text-xs text-muted-foreground">{formatDate(fixture.scheduled_date)}</p>
+        <p className="label-caps text-primary truncate">{fixture.tournament?.name ?? "TFF"}</p>
+        <p className="text-xs text-muted-foreground shrink-0">{formatDate(fixture.scheduled_date)}</p>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">{fixture.round ?? ""}</p>
-      <div className="mt-4 flex items-center justify-between gap-3">
+      <p className="mt-1 text-xs text-muted-foreground truncate">{fixture.round ?? ""}</p>
+      <div className="mt-4 flex items-center justify-between gap-3 min-w-0">
         <TeamSide team={fixture.home} align="left" dim={awayWin} />
         <div className="flex flex-col items-center shrink-0">
-          <div className="font-display rounded-lg border border-border bg-secondary px-3 py-1 text-2xl">
+          <div className="font-display rounded-lg border border-border bg-secondary px-3 py-1 text-2xl font-bold">
             {result ? `${result.home_score} — ${result.away_score}` : "—"}
           </div>
           {isPenalties && homePen !== null && awayPen !== null && (
@@ -469,8 +474,9 @@ function TeamSide({
         shortName={team?.short_name}
         color={team?.team_color}
         logoUrl={team?.logo_url}
+        size="sm"
       />
-      <span className={cn("truncate text-sm font-semibold", dim && "text-muted-foreground")}>
+      <span className={cn("truncate text-xs sm:text-sm font-semibold min-w-0", dim && "text-muted-foreground")}>
         {team?.name ?? "TBD"}
       </span>
     </>
@@ -478,7 +484,7 @@ function TeamSide({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-1 items-center gap-2.5",
+        "flex min-w-0 flex-1 items-center gap-2",
         align === "right" && "flex-row-reverse text-right",
       )}
     >

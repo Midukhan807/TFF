@@ -88,7 +88,7 @@ export function MatchPredictionPoll({
     return (
       <div className="space-y-1.5 w-full">
         {/* Compact 3-color Bar */}
-        <div className="flex h-3 w-full overflow-hidden rounded-full border border-border/60 bg-secondary shadow-inner">
+        <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-border/60 bg-secondary shadow-inner">
           <div
             style={{ width: `${stats.homePct}%` }}
             className="bg-primary flex items-center justify-center text-[9px] font-extrabold text-primary-foreground transition-all duration-300"
@@ -107,24 +107,24 @@ export function MatchPredictionPoll({
         </div>
 
         {/* Compact Labels & Quick Vote Buttons */}
-        <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground">
+        <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground gap-1">
           <button
             onClick={() => handleVoteClick("home")}
-            className={`hover:text-primary transition-colors flex items-center gap-1 ${userVote?.prediction === "home" ? "text-primary font-black" : ""}`}
+            className={`hover:text-primary transition-colors flex items-center gap-1 min-w-0 truncate ${userVote?.prediction === "home" ? "text-primary font-black" : ""}`}
           >
-            🔴 {homeName} ({stats.homePct}%)
+            <span className="shrink-0">🔴</span> <span className="truncate">{homeName} ({stats.homePct}%)</span>
           </button>
           <button
             onClick={() => handleVoteClick("draw")}
-            className={`hover:text-foreground transition-colors flex items-center gap-1 ${userVote?.prediction === "draw" ? "text-foreground font-black" : ""}`}
+            className={`hover:text-foreground transition-colors flex items-center gap-1 shrink-0 ${userVote?.prediction === "draw" ? "text-foreground font-black" : ""}`}
           >
-            ⚪ DRAW ({stats.drawPct}%)
+            <span>⚪</span> <span>DRAW ({stats.drawPct}%)</span>
           </button>
           <button
             onClick={() => handleVoteClick("away")}
-            className={`hover:text-emerald-400 transition-colors flex items-center gap-1 ${userVote?.prediction === "away" ? "text-emerald-400 font-black" : ""}`}
+            className={`hover:text-emerald-400 transition-colors flex items-center gap-1 min-w-0 truncate justify-end ${userVote?.prediction === "away" ? "text-emerald-400 font-black" : ""}`}
           >
-            🟢 {awayName} ({stats.awayPct}%)
+            <span className="shrink-0">🟢</span> <span className="truncate">{awayName} ({stats.awayPct}%)</span>
           </button>
         </div>
       </div>
