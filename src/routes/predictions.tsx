@@ -29,6 +29,7 @@ export const Route = createFileRoute("/predictions")({
 
 function PredictionsPage() {
   const [selectedTourneyId, setSelectedTourneyId] = useState<string>("all");
+  const [selectedMatchday, setSelectedMatchday] = useState<number | "all">("all");
   const [userHandle, setUserHandleState] = useState(getStoredHandle());
   const [editingHandle, setEditingHandle] = useState(false);
 
@@ -45,6 +46,18 @@ function PredictionsPage() {
 
   const upcomingFixtures = filteredFixtures.filter((f) => f.status !== "completed");
   const completedFixtures = allFixtures.filter((f) => f.status === "completed");
+
+  const availableMatchdays = Array.from(
+    new Set(
+      upcomingFixtures
+        .map((f) => f.matchday)
+        .filter((m): m is number => m !== null && m !== undefined && m > 0)
+    )
+  ).sort((a, b) => a - b);
+
+  const displayedUpcomingFixtures = upcomingFixtures.filter((f) =>
+    selectedMatchday === "all" ? true : f.matchday === selectedMatchday
+  );
 
   const leaderboard = computePredictionLeaderboard(completedFixtures, allVotes);
 
@@ -93,7 +106,10 @@ function PredictionsPage() {
 
           <select
             value={selectedTourneyId}
-            onChange={(e) => setSelectedTourneyId(e.target.value)}
+            onChange={(e) => {
+              setSelectedTourneyId(e.target.value);
+              setSelectedMatchday("all");
+            }}
             className="bg-background border border-border text-sm font-semibold rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
           >
             <option value="all">🏆 All Tournaments</option>
@@ -130,19 +146,55 @@ function PredictionsPage() {
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         {/* Left Column: Upcoming Match Predictions */}
         <div className="space-y-6">
-          <h2 className="font-display text-2xl uppercase tracking-wider flex items-center gap-2">
-            <Vote className="size-5 text-primary" /> Upcoming Matches to Predict
-          </h2>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="font-display text-2xl uppercase tracking-wider flex items-center gap-2">
+              <Vote className="size-5 text-primary" /> Upcoming Matches to Predict
+            </h2>
+          </div>
 
-          {upcomingFixtures.length === 0 ? (
+          {/* Matchday Filter Buttons */}
+          {availableMatchdays.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-card/60 border border-border/80 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setSelectedMatchday("all")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedMatchday === "all"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                }`}
+              >
+                All Matchdays ({upcomingFixtures.length})
+              </button>
+              {availableMatchdays.map((md) => {
+                const count = upcomingFixtures.filter((f) => f.matchday === md).length;
+                return (
+                  <button
+                    type="button"
+                    key={md}
+                    onClick={() => setSelectedMatchday(md)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      selectedMatchday === md
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                    }`}
+                  >
+                    Matchday {md} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {displayedUpcomingFixtures.length === 0 ? (
             <div className="panel p-12 text-center text-muted-foreground space-y-2">
               <CheckCircle2 className="mx-auto size-12 opacity-40 text-green-400" />
               <p className="font-bold text-base text-foreground">No Upcoming Scheduled Matches</p>
-              <p className="text-xs">All current fixtures have been completed. Check back when new matchdays are generated!</p>
+              <p className="text-xs">All current fixtures have been completed or no matches found for this matchday.</p>
             </div>
           ) : (
             <div className="space-y-6">
-              {upcomingFixtures.map((f) => (
+              {displayedUpcomingFixtures.map((f) => (
                 <div key={f.id} className="panel p-5 space-y-4 border-border/80 bg-card/60">
                   {/* Match Banner Header */}
                   <div className="flex items-center justify-between text-xs font-bold border-b border-border/40 pb-2">

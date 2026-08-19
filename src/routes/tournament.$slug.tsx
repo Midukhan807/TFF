@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarDays, Goal, Info, Shield, Trophy } from "lucide-react";
@@ -380,6 +381,8 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function FixtureList({ fixtures }: { fixtures: FixtureWithTeams[] }) {
+  const [selectedMatchday, setSelectedMatchday] = useState<number | "all">("all");
+
   if (!fixtures.length) {
     return (
       <EmptyState
@@ -389,9 +392,48 @@ function FixtureList({ fixtures }: { fixtures: FixtureWithTeams[] }) {
     );
   }
   const matchdays = [...new Set(fixtures.map((f) => f.matchday ?? 0))].sort((a, b) => a - b);
+  const visibleMatchdays =
+    selectedMatchday === "all"
+      ? matchdays
+      : matchdays.filter((md) => md === selectedMatchday);
+
   return (
     <div className="space-y-6">
-      {matchdays.map((matchday) => {
+      {/* Matchday Filter Buttons */}
+      {matchdays.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-card/60 border border-border/80 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setSelectedMatchday("all")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              selectedMatchday === "all"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+            }`}
+          >
+            All Matchdays ({fixtures.length})
+          </button>
+          {matchdays.map((md) => {
+            const count = fixtures.filter((f) => (f.matchday ?? 0) === md).length;
+            return (
+              <button
+                type="button"
+                key={md}
+                onClick={() => setSelectedMatchday(md)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedMatchday === md
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                }`}
+              >
+                Matchday {md} ({count})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {visibleMatchdays.map((matchday) => {
         const group = fixtures.filter((f) => (f.matchday ?? 0) === matchday);
         return (
           <div key={matchday} className="panel overflow-hidden">
