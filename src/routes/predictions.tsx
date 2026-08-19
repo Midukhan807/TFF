@@ -35,7 +35,11 @@ function PredictionsPage() {
 
   const tournaments = useQuery({ queryKey: ["tournaments"], queryFn: fetchTournaments });
   const fixtures = useQuery({ queryKey: ["all-fixtures"], queryFn: fetchAllFixtures });
-  const predictions = useQuery({ queryKey: ["all-predictions"], queryFn: fetchAllPredictions });
+  const predictions = useQuery({
+    queryKey: ["all-predictions"],
+    queryFn: fetchAllPredictions,
+    refetchInterval: 10000,
+  });
 
   const allFixtures = fixtures.data ?? [];
   const allVotes = predictions.data ?? [];

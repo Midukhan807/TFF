@@ -32,6 +32,7 @@ export function MatchPredictionPoll({
   const predictionsQuery = useQuery({
     queryKey: ["predictions", fixture.id],
     queryFn: () => fetchPredictionsForFixture(fixture.id),
+    refetchInterval: 10000,
   });
 
   const voteMutation = useMutation({

@@ -77,53 +77,65 @@ function saveLocalVote(vote: PredictionVote): void {
     filtered.push(vote);
     localStorage.setItem(LOCAL_VOTES_KEY, JSON.stringify(filtered));
   } catch {}
+const GLOBAL_PREDICTIONS_BIN_ID = "ff8081819ff5b11001a01978f8174eb1";
+const GLOBAL_PREDICTIONS_URL = `https://api.restful-api.dev/objects/${GLOBAL_PREDICTIONS_BIN_ID}`;
+
+async function fetchGlobalCloudVotes(): Promise<PredictionVote[]> {
+  try {
+    const res = await fetch(GLOBAL_PREDICTIONS_URL);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.data?.votes as PredictionVote[]) || [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveGlobalCloudVote(vote: PredictionVote): Promise<void> {
+  try {
+    const existingCloudVotes = await fetchGlobalCloudVotes();
+    const filtered = existingCloudVotes.filter(
+      (v) => !(v.fixture_id === vote.fixture_id && v.visitor_id === vote.visitor_id)
+    );
+    filtered.push(vote);
+    await fetch(GLOBAL_PREDICTIONS_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "TFF_PREDICTIONS_GLOBAL_STORE_V1",
+        data: { votes: filtered },
+      }),
+    });
+  } catch {}
 }
 
 // Fetch prediction votes for a single fixture
 export async function fetchPredictionsForFixture(fixtureId: string): Promise<PredictionVote[]> {
-  try {
-    const { data, error } = await supabase
-      .from("predictions")
-      .select("*")
-      .eq("fixture_id", fixtureId);
-
-    if (error || !data) {
-      // Fallback to local votes if table does not exist
-      const local = getLocalVotes().filter((v) => v.fixture_id === fixtureId);
-      return local;
-    }
-    return data as unknown as PredictionVote[];
-  } catch {
-    const local = getLocalVotes().filter((v) => v.fixture_id === fixtureId);
-    return local;
-  }
+  const all = await fetchAllPredictions();
+  return all.filter((v) => v.fixture_id === fixtureId);
 }
 
-// Fetch all predictions
+// Fetch all predictions across Supabase DB, Global Cloud, and Local Storage
 export async function fetchAllPredictions(): Promise<PredictionVote[]> {
+  let dbVotes: PredictionVote[] = [];
   try {
-    const { data, error } = await supabase
-      .from("predictions")
-      .select("*");
+    const { data, error } = await supabase.from("predictions").select("*");
+    if (!error && data) {
+      dbVotes = data as unknown as PredictionVote[];
+    }
+  } catch {}
 
-    if (error || !data) {
-      return getLocalVotes();
-    }
-    const dbVotes = data as unknown as PredictionVote[];
-    const localVotes = getLocalVotes();
-    
-    // Merge DB and local votes by visitor_id + fixture_id
-    const combinedMap = new Map<string, PredictionVote>();
-    for (const v of [...dbVotes, ...localVotes]) {
-      combinedMap.set(`${v.fixture_id}_${v.visitor_id}`, v);
-    }
-    return Array.from(combinedMap.values());
-  } catch {
-    return getLocalVotes();
+  const cloudVotes = await fetchGlobalCloudVotes();
+  const localVotes = getLocalVotes();
+
+  const combinedMap = new Map<string, PredictionVote>();
+  for (const v of [...dbVotes, ...cloudVotes, ...localVotes]) {
+    combinedMap.set(`${v.fixture_id}_${v.visitor_id}`, v);
   }
+  return Array.from(combinedMap.values());
 }
 
-// Submit or update a prediction vote
+// Submit or update a prediction vote globally
 export async function submitPredictionVote(
   fixtureId: string,
   choice: PredictionChoice,
@@ -146,10 +158,10 @@ export async function submitPredictionVote(
   };
 
   saveLocalVote(votePayload);
+  await saveGlobalCloudVote(votePayload);
 
   try {
-    // Upsert into Supabase predictions table if available
-    const { data, error } = await supabase
+    await supabase
       .from("predictions")
       .upsert(
         {
@@ -159,13 +171,7 @@ export async function submitPredictionVote(
           prediction: choice,
         },
         { onConflict: "fixture_id,visitor_id" }
-      )
-      .select()
-      .single();
-
-    if (!error && data) {
-      return data as unknown as PredictionVote;
-    }
+      );
   } catch {}
 
   return votePayload;
