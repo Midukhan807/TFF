@@ -202,7 +202,7 @@ export function TournamentAwardsSection({
           </p>
         </div>
 
-        {/* 3. BEST DEFENSIVE TEAM (GOLDEN GLOVE) */}
+        {/* 3. BEST DEFENSIVE TEAM (CONCEDED) */}
         <div className="panel relative overflow-hidden p-6 border-blue-500/40 bg-gradient-to-b from-blue-500/5 to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-blue-400">
@@ -235,6 +235,76 @@ export function TournamentAwardsSection({
           <p className="mt-4 text-xs text-muted-foreground bg-zinc-900/60 p-3 rounded-lg border border-border/40">
             Awarded to the side maintaining the tightest defensive record with the fewest goals conceded.
           </p>
+        </div>
+
+        {/* 4. GOLDEN GLOVE (MOST CLEAN SHEETS) */}
+        <div className="panel relative overflow-hidden p-6 border-cyan-500/40 bg-gradient-to-b from-cyan-500/5 to-transparent">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-cyan-400">
+              <Shield className="size-5" />
+              <span className="label-caps font-semibold">Golden Glove (Clean Sheets)</span>
+            </div>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-display">
+              SHUTOUT KING 🧤
+            </span>
+          </div>
+
+          {(() => {
+            const cleanSheetsMap = new Map<string, number>();
+            for (const f of completedFixtures) {
+              if (f.status === "completed" && f.result) {
+                if (f.home_team_id) {
+                  if (!cleanSheetsMap.has(f.home_team_id)) cleanSheetsMap.set(f.home_team_id, 0);
+                  if ((f.result.away_score ?? 0) === 0) {
+                    cleanSheetsMap.set(f.home_team_id, cleanSheetsMap.get(f.home_team_id)! + 1);
+                  }
+                }
+                if (f.away_team_id) {
+                  if (!cleanSheetsMap.has(f.away_team_id)) cleanSheetsMap.set(f.away_team_id, 0);
+                  if ((f.result.home_score ?? 0) === 0) {
+                    cleanSheetsMap.set(f.away_team_id, cleanSheetsMap.get(f.away_team_id)! + 1);
+                  }
+                }
+              }
+            }
+
+            let topCleanSheetTeamId = "";
+            let maxCleanSheets = 0;
+            for (const [teamId, count] of cleanSheetsMap.entries()) {
+              if (count > maxCleanSheets) {
+                maxCleanSheets = count;
+                topCleanSheetTeamId = teamId;
+              }
+            }
+
+            const cleanSheetTeam = topCleanSheetTeamId ? teamsMap.get(topCleanSheetTeamId) : null;
+
+            return (
+              <>
+                <div className="mt-5 flex items-center gap-4">
+                  <TeamLogo
+                    name={cleanSheetTeam?.name ?? "TBD"}
+                    shortName={cleanSheetTeam?.short_name}
+                    color={cleanSheetTeam?.team_color}
+                    logoUrl={cleanSheetTeam?.logo_url}
+                    size="lg"
+                  />
+                  <div>
+                    <p className="font-display text-2xl text-white">
+                      {cleanSheetTeam?.name ?? "To be determined"}
+                    </p>
+                    <p className="text-xs text-cyan-400 font-medium">
+                      {maxCleanSheets} Clean Sheet{maxCleanSheets !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-xs text-muted-foreground bg-zinc-900/60 p-3 rounded-lg border border-border/40">
+                  Awarded to the team with the most shutouts (zero goals conceded in a match) across all fixtures.
+                </p>
+              </>
+            );
+          })()}
         </div>
 
         {/* 6. MATCH THRILLER OF THE TOURNAMENT */}

@@ -484,6 +484,34 @@ function Statistics({
   const bestDefense = [...ranked].sort((a, b) => a.goals_against - b.goals_against)[0];
   const mostGoals = [...ranked].sort((a, b) => b.goals_for - a.goals_for)[0];
 
+  // Compute Clean Sheets per team
+  const cleanSheetsMap = new Map<string, number>();
+  for (const f of completed) {
+    if (f.status === "completed" && f.result) {
+      if (f.home_team_id) {
+        if (!cleanSheetsMap.has(f.home_team_id)) cleanSheetsMap.set(f.home_team_id, 0);
+        if ((f.result.away_score ?? 0) === 0) {
+          cleanSheetsMap.set(f.home_team_id, cleanSheetsMap.get(f.home_team_id)! + 1);
+        }
+      }
+      if (f.away_team_id) {
+        if (!cleanSheetsMap.has(f.away_team_id)) cleanSheetsMap.set(f.away_team_id, 0);
+        if ((f.result.home_score ?? 0) === 0) {
+          cleanSheetsMap.set(f.away_team_id, cleanSheetsMap.get(f.away_team_id)! + 1);
+        }
+      }
+    }
+  }
+
+  let topCleanSheetTeamId = "";
+  let maxCleanSheets = 0;
+  for (const [teamId, count] of cleanSheetsMap.entries()) {
+    if (count > maxCleanSheets) {
+      maxCleanSheets = count;
+      topCleanSheetTeamId = teamId;
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -504,7 +532,7 @@ function Statistics({
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Most Wins"
           value={<span className="text-2xl">{teamNames.get(mostWins?.team_id ?? "")?.name ?? "—"}</span>}
@@ -521,6 +549,15 @@ function Statistics({
             <span className="text-2xl">{teamNames.get(bestDefense?.team_id ?? "")?.name ?? "—"}</span>
           }
           hint={`${bestDefense?.goals_against ?? 0} conceded`}
+        />
+        <StatCard
+          label="Most Clean Sheets 🧤"
+          value={
+            <span className="text-2xl">
+              {topCleanSheetTeamId ? (teamNames.get(topCleanSheetTeamId)?.name ?? "—") : "—"}
+            </span>
+          }
+          hint={topCleanSheetTeamId ? `${maxCleanSheets} clean sheet${maxCleanSheets !== 1 ? "s" : ""}` : "0 clean sheets"}
         />
       </div>
 

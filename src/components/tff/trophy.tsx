@@ -136,7 +136,7 @@ export function ChampionCard({
         </div>
 
         {/* Podium & Accolades Grid */}
-        <div className="mt-6 grid gap-3 border-t border-border/60 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid gap-3 border-t border-border/60 pt-5 sm:grid-cols-2 lg:grid-cols-5">
           {/* Runner Up */}
           <div className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
             {runnerUp ? (
@@ -221,6 +221,19 @@ export function ChampionCard({
               <p className="text-[0.65rem] font-bold uppercase tracking-wider text-amber-400">Top Scorer ⚽</p>
               <p className="truncate text-xs font-semibold text-foreground">
                 {champion.top_scorer || "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Golden Glove / Clean Sheets */}
+          <div className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
+            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+              <Shield className="size-5 text-cyan-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-cyan-400">Golden Glove 🧤</p>
+              <p className="truncate text-xs font-semibold text-foreground">
+                Clean Sheets Record
               </p>
             </div>
           </div>
