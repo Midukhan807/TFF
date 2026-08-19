@@ -48,6 +48,18 @@ export const Route = createFileRoute("/tournament/$slug")({
         ? (search["tab"] as string)
         : "overview",
   }),
+  errorComponent: ({ error }) => {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16">
+        <div className="panel p-6 bg-red-950/60 border-red-500/50 text-red-200 space-y-3">
+          <h2 className="text-lg font-bold text-red-400">Tournament Detail Error</h2>
+          <pre className="text-xs font-mono whitespace-pre-wrap overflow-auto bg-black/60 p-4 rounded-xl border border-red-500/30">
+            {error instanceof Error ? error.stack || error.message : JSON.stringify(error, null, 2)}
+          </pre>
+        </div>
+      </div>
+    );
+  },
   head: ({ params }) => {
     const title = titleFromSlug(params.slug).replace(/^Tff/, "TFF");
     return {
@@ -186,7 +198,7 @@ function TournamentDetail() {
 
           <Tabs
             value={tab}
-            onValueChange={(value) => navigate({ search: { tab: value as any } })}
+            onValueChange={(value) => navigate({ to: ".", search: (prev) => ({ ...prev, tab: value as any }) })}
             className="mt-8"
           >
             <TabsList className="flex-wrap">
