@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Crown, Gamepad2, ShieldCheck, Trophy, Users } from "lucide-react";
+import { Crown, ExternalLink, Gamepad2, ShieldCheck, Trophy, Users } from "lucide-react";
 
 import { SectionHeading } from "@/components/tff/ui";
 import { Button } from "@/components/ui/button";
@@ -82,52 +82,99 @@ function AboutPage() {
         </p>
 
         <div className="grid gap-6 sm:grid-cols-2">
-          {/* Founder 1 */}
-          <div className="panel relative overflow-hidden p-6 transition-all duration-300 hover:border-primary/50 group bg-zinc-950/80">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-25 transition-opacity">
-              <Crown className="size-24 text-primary" />
-            </div>
-            <div className="flex items-center gap-4 relative z-10">
-              <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-primary/10 border border-primary/40 text-primary font-display text-2xl shadow-xl">
-                FP
+          {/* Founder 1 - Frieza x pablo */}
+          <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-zinc-950/90 shadow-xl transition-all duration-300 hover:border-primary/50 hover:shadow-primary/10">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+
+            {/* Showcase Header */}
+            <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-red-950/30 via-zinc-900/90 to-zinc-950 flex items-center justify-center border-b border-border/50">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-70" />
+              <Crown className="absolute -right-6 -bottom-6 size-40 text-primary/5 group-hover:text-primary/10 transition-colors pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="grid size-24 place-items-center rounded-3xl bg-primary/15 border-2 border-primary/40 text-primary font-display text-4xl font-bold shadow-2xl backdrop-blur-sm group-hover:scale-105 group-hover:border-primary/70 transition-all duration-300">
+                  FP
+                </div>
               </div>
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-semibold bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
-                  <ShieldCheck className="size-3" /> Co-Founder
+
+              <div className="absolute top-4 left-4 z-20">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-zinc-950/85 text-primary border border-primary/30 uppercase tracking-wider backdrop-blur-md shadow-md">
+                  <ShieldCheck className="size-3.5 text-primary" /> Co-Founder
                 </span>
-                <h3 className="text-2xl font-display uppercase tracking-wide text-foreground mt-1">
+              </div>
+            </div>
+
+            {/* Content Body */}
+            <div className="flex flex-1 flex-col justify-between p-6">
+              <div>
+                <h3 className="text-2xl font-display uppercase tracking-wide text-foreground font-bold group-hover:text-primary transition-colors">
                   Frieza x pablo
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary mt-1">
                   Founder & Federation Director
                 </p>
+                <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+                  Directing federation governance, competitive regulations, and executive organization vision for the Triad Champions League.
+                </p>
+              </div>
+
+              <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5 text-zinc-400">
+                  <Crown className="size-3.5 text-primary" /> Executive Board
+                </span>
+                <span className="text-[0.7rem] uppercase tracking-wider text-muted-foreground/80 font-mono">
+                  TFF Official
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Founder 2 */}
-          <div className="panel relative overflow-hidden p-6 transition-all duration-300 hover:border-primary/50 group bg-zinc-950/80">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-25 transition-opacity">
-              <Crown className="size-24 text-primary" />
-            </div>
-            <div className="flex items-center gap-4 relative z-10">
-              <div className="size-16 shrink-0 overflow-hidden rounded-2xl border border-primary/40 shadow-xl bg-primary/10">
-                <img
-                  src={danteJrImg}
-                  alt="Dante Jr"
-                  className="h-full w-full object-cover object-center"
-                />
-              </div>
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-semibold bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
-                  <ShieldCheck className="size-3" /> Co-Founder
+          {/* Founder 2 - Dante Jr */}
+          <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-zinc-950/90 shadow-xl transition-all duration-300 hover:border-primary/50 hover:shadow-primary/10">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+
+            {/* Media Banner */}
+            <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-900 border-b border-border/50">
+              <img
+                src={danteJrImg}
+                alt="Dante Jr - TFF Co-Founder"
+                className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/30 to-transparent" />
+
+              <div className="absolute top-4 left-4 z-20">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-zinc-950/85 text-primary border border-primary/30 uppercase tracking-wider backdrop-blur-md shadow-md">
+                  <ShieldCheck className="size-3.5 text-primary" /> Co-Founder
                 </span>
-                <h3 className="text-2xl font-display uppercase tracking-wide text-foreground mt-1">
+              </div>
+            </div>
+
+            {/* Content Body */}
+            <div className="flex flex-1 flex-col justify-between p-6">
+              <div>
+                <h3 className="text-2xl font-display uppercase tracking-wide text-foreground font-bold group-hover:text-primary transition-colors">
                   Dante Jr
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary mt-1">
                   Founder & Operations Head
                 </p>
+                <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+                  Leading tournament operations, live match broadcasts, official streaming, and competitive fixture scheduling.
+                </p>
+              </div>
+
+              <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
+                  <Crown className="size-3.5 text-primary" /> Executive Board
+                </span>
+                <a
+                  href="https://www.youtube.com/@Dante_JR_7"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-all hover:scale-105"
+                >
+                  <ExternalLink className="size-3" /> YouTube Channel
+                </a>
               </div>
             </div>
           </div>
