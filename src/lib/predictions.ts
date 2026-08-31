@@ -77,6 +77,7 @@ function saveLocalVote(vote: PredictionVote): void {
     filtered.push(vote);
     localStorage.setItem(LOCAL_VOTES_KEY, JSON.stringify(filtered));
   } catch {}
+}
 const GLOBAL_PREDICTIONS_BIN_ID = "ff8081819ff5b11001a01978f8174eb1";
 const GLOBAL_PREDICTIONS_URL = `https://api.restful-api.dev/objects/${GLOBAL_PREDICTIONS_BIN_ID}`;
 
