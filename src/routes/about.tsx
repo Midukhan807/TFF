@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/tff/ui";
 import { Button } from "@/components/ui/button";
 import { TrophyRevealCard } from "@/components/tff/trophy-reveal-card";
 import danteJrImg from "@/assets/dante_jr.png";
-import pabloImg from "@/assets/pablo.png";
+import pabloImg from "@/assets/pablo1.png";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
