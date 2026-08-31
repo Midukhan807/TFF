@@ -88,11 +88,11 @@ function AboutPage() {
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
 
             {/* Media Banner */}
-            <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-900 border-b border-border/50">
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-900 border-b border-border/50">
               <img
                 src={pabloImg}
                 alt="Frieza x pablo - TFF Co-Founder"
-                className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                className="h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/30 to-transparent" />
 
@@ -138,11 +138,11 @@ function AboutPage() {
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
 
             {/* Media Banner */}
-            <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-900 border-b border-border/50">
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-900 border-b border-border/50">
               <img
                 src={danteJrImg}
                 alt="Dante Jr - TFF Co-Founder"
-                className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                className="h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/30 to-transparent" />
 
