@@ -4,7 +4,7 @@ import { Crown, ExternalLink, Gamepad2, ShieldCheck, Trophy, Users } from "lucid
 import { SectionHeading } from "@/components/tff/ui";
 import { Button } from "@/components/ui/button";
 import { TrophyRevealCard } from "@/components/tff/trophy-reveal-card";
-import danteJrImg from "@/assets/dante jr.png";
+import danteJrImg from "@/assets/dante_jr.png";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
