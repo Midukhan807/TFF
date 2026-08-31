@@ -118,13 +118,18 @@ function AboutPage() {
                 </p>
               </div>
 
-              <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5 text-zinc-400">
+              <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
                   <Crown className="size-3.5 text-primary" /> Executive Board
                 </span>
-                <span className="text-[0.7rem] uppercase tracking-wider text-muted-foreground/80 font-mono">
-                  TFF Official
-                </span>
+                <a
+                  href="https://www.youtube.com/@FRIEZAXPABLO"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-all hover:scale-105"
+                >
+                  <ExternalLink className="size-3" /> YouTube Channel
+                </a>
               </div>
             </div>
           </div>
