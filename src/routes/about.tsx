@@ -4,6 +4,7 @@ import { Crown, Gamepad2, ShieldCheck, Trophy, Users } from "lucide-react";
 import { SectionHeading } from "@/components/tff/ui";
 import { Button } from "@/components/ui/button";
 import { TrophyRevealCard } from "@/components/tff/trophy-reveal-card";
+import danteJrImg from "@/assets/dante jr.png";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -110,8 +111,12 @@ function AboutPage() {
               <Crown className="size-24 text-primary" />
             </div>
             <div className="flex items-center gap-4 relative z-10">
-              <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-primary/10 border border-primary/40 text-primary font-display text-2xl shadow-xl">
-                DJ
+              <div className="size-16 shrink-0 overflow-hidden rounded-2xl border border-primary/40 shadow-xl bg-primary/10">
+                <img
+                  src={danteJrImg}
+                  alt="Dante Jr"
+                  className="h-full w-full object-cover object-center"
+                />
               </div>
               <div>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-semibold bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
