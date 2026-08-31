@@ -5,6 +5,7 @@ import { SectionHeading } from "@/components/tff/ui";
 import { Button } from "@/components/ui/button";
 import { TrophyRevealCard } from "@/components/tff/trophy-reveal-card";
 import danteJrImg from "@/assets/dante_jr.png";
+import pabloImg from "@/assets/pablo.png";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -86,16 +87,14 @@ function AboutPage() {
           <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-zinc-950/90 shadow-xl transition-all duration-300 hover:border-primary/50 hover:shadow-primary/10">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
 
-            {/* Showcase Header */}
-            <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-red-950/30 via-zinc-900/90 to-zinc-950 flex items-center justify-center border-b border-border/50">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-70" />
-              <Crown className="absolute -right-6 -bottom-6 size-40 text-primary/5 group-hover:text-primary/10 transition-colors pointer-events-none" />
-
-              <div className="relative z-10 flex flex-col items-center">
-                <div className="grid size-24 place-items-center rounded-3xl bg-primary/15 border-2 border-primary/40 text-primary font-display text-4xl font-bold shadow-2xl backdrop-blur-sm group-hover:scale-105 group-hover:border-primary/70 transition-all duration-300">
-                  FP
-                </div>
-              </div>
+            {/* Media Banner */}
+            <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-900 border-b border-border/50">
+              <img
+                src={pabloImg}
+                alt="Frieza x pablo - TFF Co-Founder"
+                className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/30 to-transparent" />
 
               <div className="absolute top-4 left-4 z-20">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-zinc-950/85 text-primary border border-primary/30 uppercase tracking-wider backdrop-blur-md shadow-md">
