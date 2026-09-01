@@ -58,6 +58,7 @@ export interface Fixture {
   scheduled_date: string | null;
   scheduled_time: string | null;
   status: FixtureStatus;
+  created_at?: string;
 }
 
 export interface MatchResult {
@@ -75,6 +76,7 @@ export interface MatchResult {
   notes: string | null;
   screenshot_url: string | null;
   motm: string | null;
+  created_at?: string;
 }
 
 export interface StandingRow {
@@ -118,9 +120,9 @@ export interface TournamentAward {
 
 export interface PlayerStat {
   id: string;
-  tournament_id: string;
-  team_id: string | null;
   player_name: string;
+  team_id: string | null;
+  tournament_id: string;
   goals: number;
   assists: number;
   motm: number;
@@ -130,7 +132,7 @@ export type FixtureWithTeams = Fixture & {
   home: Team | null;
   away: Team | null;
   result: MatchResult | null;
-  tournament?: Pick<Tournament, "id" | "name" | "slug"> | null;
+  tournament?: Pick<Tournament, "id" | "name" | "slug" | "status" | "season_year" | "start_date" | "created_at"> | null;
 };
 
 /* --------------------------------- helpers -------------------------------- */
@@ -388,11 +390,103 @@ export async function fetchTournamentTeams(tournamentId: string): Promise<Team[]
 }
 
 const FIXTURE_SELECT =
-  "*, home:home_team_id(*), away:away_team_id(*), result:results(*), tournament:tournament_id(id,name,slug,is_demo)";
+  "*, home:home_team_id(*), away:away_team_id(*), result:results(*), tournament:tournament_id(id,name,slug,status,season_year,start_date,created_at,is_demo)";
 
 function normalizeFixture(row: any): FixtureWithTeams {
   const result = Array.isArray(row.result) ? (row.result[0] ?? null) : (row.result ?? null);
   return { ...row, result } as FixtureWithTeams;
+}
+
+export function sortFixturesByLatest(fixtures: FixtureWithTeams[]): FixtureWithTeams[] {
+  return [...fixtures].sort((a, b) => {
+    // 1. Live tournament matches get top priority
+    const aLive = a.tournament?.status === "live";
+    const bLive = b.tournament?.status === "live";
+    if (aLive && !bLive) return -1;
+    if (!aLive && bLive) return 1;
+
+    // 2. Higher season number comes first (e.g. Season 7 > Season 4)
+    const seasonA = parseSeasonNumber(a.tournament?.name || "");
+    const seasonB = parseSeasonNumber(b.tournament?.name || "");
+    if (seasonA !== null && seasonB !== null) {
+      if (seasonA !== seasonB) return seasonB - seasonA;
+    } else if (seasonA !== null) {
+      return -1;
+    } else if (seasonB !== null) {
+      return 1;
+    }
+
+    // 3. Tournament season year or start date
+    const yearA = a.tournament?.season_year ?? 0;
+    const yearB = b.tournament?.season_year ?? 0;
+    if (yearA !== yearB) return yearB - yearA;
+
+    const tourneyDateA = a.tournament?.start_date || a.tournament?.created_at || "";
+    const tourneyDateB = b.tournament?.start_date || b.tournament?.created_at || "";
+    if (tourneyDateA !== tourneyDateB) return tourneyDateB.localeCompare(tourneyDateA);
+
+    // 4. Played / Result date or Scheduled date
+    const dateA = a.result?.played_at || a.result?.created_at || a.scheduled_date || a.created_at || "";
+    const dateB = b.result?.played_at || b.result?.created_at || b.scheduled_date || b.created_at || "";
+    if (dateA && dateB && dateA !== dateB) return dateB.localeCompare(dateA);
+
+    // 5. Higher matchday first (e.g. Matchday 4 before Matchday 1)
+    const mdA = a.matchday ?? 0;
+    const mdB = b.matchday ?? 0;
+    if (mdA !== mdB) return mdB - mdA;
+
+    // 6. Fixture created_at or id
+    const fixCreatedA = a.created_at || "";
+    const fixCreatedB = b.created_at || "";
+    if (fixCreatedA !== fixCreatedB) return fixCreatedB.localeCompare(fixCreatedA);
+
+    return (b.id || "").localeCompare(a.id || "");
+  });
+}
+
+export function sortFixturesByUpcoming(fixtures: FixtureWithTeams[]): FixtureWithTeams[] {
+  return [...fixtures].sort((a, b) => {
+    // 1. Live tournament matches get top priority, then upcoming tournaments
+    const aLive = a.tournament?.status === "live";
+    const bLive = b.tournament?.status === "live";
+    if (aLive && !bLive) return -1;
+    if (!aLive && bLive) return 1;
+
+    const aUpcoming = a.tournament?.status === "upcoming";
+    const bUpcoming = b.tournament?.status === "upcoming";
+    if (aUpcoming && !bUpcoming) return -1;
+    if (!aUpcoming && bUpcoming) return 1;
+
+    // 2. Higher season number comes first
+    const seasonA = parseSeasonNumber(a.tournament?.name || "");
+    const seasonB = parseSeasonNumber(b.tournament?.name || "");
+    if (seasonA !== null && seasonB !== null) {
+      if (seasonA !== seasonB) return seasonB - seasonA;
+    } else if (seasonA !== null) {
+      return -1;
+    } else if (seasonB !== null) {
+      return 1;
+    }
+
+    // 3. Scheduled date ascending if available
+    const dateA = a.scheduled_date ? `${a.scheduled_date}T${a.scheduled_time || "00:00:00"}` : "";
+    const dateB = b.scheduled_date ? `${b.scheduled_date}T${b.scheduled_time || "00:00:00"}` : "";
+    if (dateA && dateB && dateA !== dateB) return dateA.localeCompare(dateB);
+    if (dateA && !dateB) return -1;
+    if (!dateA && dateB) return 1;
+
+    // 4. Lowest matchday first (e.g. Next matchday)
+    const mdA = a.matchday ?? 999;
+    const mdB = b.matchday ?? 999;
+    if (mdA !== mdB) return mdA - mdB;
+
+    // 5. Bracket slot
+    const slotA = a.bracket_slot ?? 999;
+    const slotB = b.bracket_slot ?? 999;
+    if (slotA !== slotB) return slotA - slotB;
+
+    return (a.id || "").localeCompare(b.id || "");
+  });
 }
 
 export async function fetchFixtures(tournamentId: string): Promise<FixtureWithTeams[]> {
@@ -409,33 +503,33 @@ export async function fetchFixtures(tournamentId: string): Promise<FixtureWithTe
 export async function fetchAllFixtures(): Promise<FixtureWithTeams[]> {
   const { data, error } = await db
     .from("fixtures")
-    .select(FIXTURE_SELECT)
-    .order("scheduled_date", { ascending: false });
+    .select(FIXTURE_SELECT);
   if (error) throw error;
   const normalized = ((data ?? []) as any[]).map(normalizeFixture);
-  return normalized.filter((f: any) => !f.tournament?.is_demo);
+  const filtered = normalized.filter((f: any) => !f.tournament?.is_demo);
+  return sortFixturesByLatest(filtered);
 }
 
 export async function fetchLatestResults(limit = 6): Promise<FixtureWithTeams[]> {
   const { data, error } = await db
     .from("fixtures")
     .select(FIXTURE_SELECT)
-    .eq("status", "completed")
-    .order("scheduled_date", { ascending: false });
+    .eq("status", "completed");
   if (error) throw error;
   const normalized = ((data ?? []) as any[]).map(normalizeFixture);
-  return normalized.filter((f: any) => !f.tournament?.is_demo).slice(0, limit);
+  const filtered = normalized.filter((f: any) => !f.tournament?.is_demo && f.result);
+  return sortFixturesByLatest(filtered).slice(0, limit);
 }
 
 export async function fetchUpcomingFixtures(limit = 6): Promise<FixtureWithTeams[]> {
   const { data, error } = await db
     .from("fixtures")
     .select(FIXTURE_SELECT)
-    .eq("status", "scheduled")
-    .order("scheduled_date", { ascending: true });
+    .eq("status", "scheduled");
   if (error) throw error;
   const normalized = ((data ?? []) as any[]).map(normalizeFixture);
-  return normalized.filter((f: any) => !f.tournament?.is_demo).slice(0, limit);
+  const filtered = normalized.filter((f: any) => !f.tournament?.is_demo);
+  return sortFixturesByUpcoming(filtered).slice(0, limit);
 }
 
 export function getManualStandings(tournamentId?: string): StandingRow[] {
@@ -602,11 +696,11 @@ export async function fetchTeamFixtures(teamId: string): Promise<FixtureWithTeam
   const { data, error } = await db
     .from("fixtures")
     .select(FIXTURE_SELECT)
-    .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
-    .order("scheduled_date", { ascending: false });
+    .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`);
   if (error) throw error;
   const normalized = ((data ?? []) as any[]).map(normalizeFixture);
-  return normalized.filter((f: any) => !f.tournament?.is_demo);
+  const filtered = normalized.filter((f: any) => !f.tournament?.is_demo);
+  return sortFixturesByLatest(filtered);
 }
 
 /* ------------------------------ derived logic ----------------------------- */
