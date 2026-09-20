@@ -3,7 +3,7 @@ import { ArrowUpRight, Award, Crown, Flame, Medal, Shield, Trophy } from "lucide
 
 import { TeamLogo } from "@/components/tff/branding";
 import { cn } from "@/lib/utils";
-import { getTeamVideoLogo, getMatchWinner, parseResultPenalties, type Champion, type FixtureWithTeams, type Team, type Tournament } from "@/lib/tff";
+import { computeTwoLegAggregate, getTeamVideoLogo, getMatchWinner, parseResultPenalties, type Champion, type FixtureWithTeams, type Team, type Tournament } from "@/lib/tff";
 
 export function ChampionCard({
   tournament,
@@ -407,7 +407,7 @@ export function KnockoutBracket({ fixtures }: { fixtures: FixtureWithTeams[] }) 
       const agg = computeTwoLegAggregate(finalF1, finalF2);
       if (!agg.winnerTeamId) return null;
       const championTeam = fixtures.find((f) => f.home_team_id === agg.winnerTeamId || f.away_team_id === agg.winnerTeamId);
-      return (championTeam?.home_team_id === agg.winnerTeamId ? championTeam.home?.name : championTeam?.away?.name) ?? null;
+      return (championTeam?.home_team_id === agg.winnerTeamId ? championTeam?.home?.name : championTeam?.away?.name) ?? null;
     }
 
     if (!finalF1?.result) return null;
