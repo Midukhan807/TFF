@@ -142,18 +142,46 @@ function TournamentDetail() {
   }
 
   const allFixtures = fixtures.data ?? [];
-  const league = allFixtures.filter((f) => f.stage === "league");
-  const knockout = allFixtures.filter((f) => f.stage === "knockout");
+  const isKnockoutFixture = (f: FixtureWithTeams) =>
+    f.stage === "knockout" || Boolean(f.round && f.round.trim().length > 0);
+
+  const league = allFixtures.filter((f) => !isKnockoutFixture(f));
+  const knockout = allFixtures.filter((f) => isKnockoutFixture(f));
   const completed = allFixtures.filter((f) => f.status === "completed" && f.result);
   const upcoming = allFixtures.filter((f) => f.status === "scheduled");
   const ranked = sortStandings(standings.data ?? [], tournament.tiebreakers);
   const teamMap = new Map((teams.data ?? []).map((t) => [t.id, t]));
   const leader = ranked[0] ? teamMap.get(ranked[0].team_id) : null;
   const champion = (champions.data ?? []).find((c) => c.tournament_id === tournament.id);
-  const goals = completed.reduce(
-    (sum, f) => sum + ((f.result?.home_score ?? 0) + (f.result?.away_score ?? 0)),
+
+  const completedKnockout = completed.filter(isKnockoutFixture);
+  const completedLeague = completed.filter((f) => !isKnockoutFixture(f));
+
+  const leagueGoalsFromStandings = ranked.reduce((sum, r) => sum + (Number(r.goals_for) || 0), 0);
+  const leagueMatchesFromStandings = Math.round(
+    ranked.reduce((sum, r) => sum + (Number(r.played) || 0), 0) / 2
+  );
+  const knockoutGoals = completedKnockout.reduce(
+    (sum, f) => sum + ((Number(f.result?.home_score) || 0) + (Number(f.result?.away_score) || 0)),
+    0
+  );
+
+  const fixtureGoalsSum = completed.reduce(
+    (sum, f) => sum + ((Number(f.result?.home_score) || 0) + (Number(f.result?.away_score) || 0)),
     0,
   );
+
+  const totalGoals = completedLeague.length > 0
+    ? fixtureGoalsSum
+    : leagueGoalsFromStandings + knockoutGoals;
+
+  const totalCompletedMatches = completedLeague.length > 0
+    ? completed.length
+    : leagueMatchesFromStandings + completedKnockout.length;
+
+  const totalFixturesCount = completedLeague.length > 0
+    ? allFixtures.length
+    : leagueMatchesFromStandings + allFixtures.length;
 
   return (
     <div>
@@ -241,8 +269,8 @@ function TournamentDetail() {
             )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard label="Teams" value={teams.data?.length ?? 0} icon={<Shield className="size-4" />} />
-              <StatCard label="Matches Played" value={`${completed.length} / ${allFixtures.length}`} />
-              <StatCard label="Goals" value={goals} icon={<Goal className="size-4" />} />
+              <StatCard label="Matches Played" value={`${totalCompletedMatches} / ${totalFixturesCount}`} />
+              <StatCard label="Goals" value={totalGoals} icon={<Goal className="size-4" />} />
               <StatCard
                 label="Current Leader"
                 value={<span className="text-2xl">{leader?.name ?? "—"}</span>}
@@ -281,11 +309,11 @@ function TournamentDetail() {
               <div className="panel p-6">
                 <p className="label-caps mb-3 text-primary">Progress</p>
                 <p className="font-display text-4xl">
-                  {completed.length} / {allFixtures.length}
+                  {totalCompletedMatches} / {totalFixturesCount}
                 </p>
                 <Progress
                   className="mt-3"
-                  value={allFixtures.length ? (completed.length / allFixtures.length) * 100 : 0}
+                  value={totalFixturesCount ? (totalCompletedMatches / totalFixturesCount) * 100 : 0}
                 />
                 <div className="mt-6 space-y-3">
                   <p className="label-caps text-muted-foreground">Top of the table</p>
@@ -377,7 +405,7 @@ function TournamentDetail() {
         {tab === "statistics" && (
           <Statistics
             completed={completed}
-            goals={goals}
+            goals={totalGoals}
             ranked={ranked}
             teamNames={teamMap}
             players={players.data ?? []}
@@ -565,45 +593,51 @@ function Statistics({
   // 1. Build comprehensive team statistics
   const teamStatsMap = new Map<string, TeamStatsAggregated>();
 
-  // Initialize from standings
-  for (const row of ranked) {
-    teamStatsMap.set(row.team_id, {
-      teamId: row.team_id,
-      team: teamNames.get(row.team_id),
-      played: row.played || 0,
-      goalsFor: row.goals_for || 0,
-      goalsAgainst: row.goals_against || 0,
-      goalDiff: row.goal_difference ?? (row.goals_for - row.goals_against) ?? 0,
-      yellowCards: Number(row.yellow_cards) || 0,
-      redCards: Number(row.red_cards) || 0,
+  // Ensure all tournament teams exist in the map
+  for (const [id, t] of teamNames.entries()) {
+    teamStatsMap.set(id, {
+      teamId: id,
+      team: t,
+      played: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      goalDiff: 0,
+      yellowCards: 0,
+      redCards: 0,
       cleanSheets: 0,
       fairPlayScore: 0,
     });
   }
 
-  // Ensure all tournament teams exist in the map
-  for (const [id, t] of teamNames.entries()) {
-    if (!teamStatsMap.has(id)) {
-      teamStatsMap.set(id, {
-        teamId: id,
-        team: t,
-        played: 0,
-        goalsFor: 0,
-        goalsAgainst: 0,
-        goalDiff: 0,
-        yellowCards: 0,
-        redCards: 0,
-        cleanSheets: 0,
-        fairPlayScore: 0,
-      });
-    }
+  // Populate league / group stage stats from standings if available
+  const hasLeagueStandings = ranked.length > 0;
+  for (const row of ranked) {
+    const entry = teamStatsMap.get(row.team_id) || {
+      teamId: row.team_id,
+      team: teamNames.get(row.team_id),
+      played: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      goalDiff: 0,
+      yellowCards: 0,
+      redCards: 0,
+      cleanSheets: 0,
+      fairPlayScore: 0,
+    };
+    entry.played = Number(row.played) || 0;
+    entry.goalsFor = Number(row.goals_for) || 0;
+    entry.goalsAgainst = Number(row.goals_against) || 0;
+    entry.goalDiff = row.goal_difference ?? (entry.goalsFor - entry.goalsAgainst);
+    entry.yellowCards = Number(row.yellow_cards) || 0;
+    entry.redCards = Number(row.red_cards) || 0;
+    teamStatsMap.set(row.team_id, entry);
   }
 
-  // Aggregate cards, clean sheets, and fixture data (both league & knockout)
-  const fixtureStats = new Map<
-    string,
-    { yellow: number; red: number; cleanSheets: number; matches: number; goals: number; conceded: number }
-  >();
+  const isKnockoutMatch = (f: FixtureWithTeams) =>
+    f.stage === "knockout" || Boolean(f.round && f.round.trim().length > 0);
+
+  // Aggregate cards, clean sheets, and knockout match stats (Quarter-Finals, Semi-Finals, Finals, etc.)
+  const fixtureCards = new Map<string, { yellow: number; red: number }>();
 
   for (const f of completedWithResults) {
     const res = f.result;
@@ -611,44 +645,61 @@ function Statistics({
 
     const homeId = f.home_team_id;
     const awayId = f.away_team_id;
+    const homeScore = Number(res.home_score) || 0;
+    const awayScore = Number(res.away_score) || 0;
+    const homeYellow = Number(res.home_yellow_cards) || 0;
+    const awayYellow = Number(res.away_yellow_cards) || 0;
+    const homeRed = Number(res.home_red_cards) || 0;
+    const awayRed = Number(res.away_red_cards) || 0;
+
+    const isKnockout = isKnockoutMatch(f);
 
     if (homeId) {
-      const cur = fixtureStats.get(homeId) || { yellow: 0, red: 0, cleanSheets: 0, matches: 0, goals: 0, conceded: 0 };
-      cur.yellow += Number(res.home_yellow_cards) || 0;
-      cur.red += Number(res.home_red_cards) || 0;
-      cur.goals += Number(res.home_score) || 0;
-      cur.conceded += Number(res.away_score) || 0;
-      cur.matches += 1;
-      if ((res.away_score ?? 0) === 0) cur.cleanSheets += 1;
-      fixtureStats.set(homeId, cur);
+      const cur = fixtureCards.get(homeId) || { yellow: 0, red: 0 };
+      cur.yellow += homeYellow;
+      cur.red += homeRed;
+      fixtureCards.set(homeId, cur);
+    }
+    if (awayId) {
+      const cur = fixtureCards.get(awayId) || { yellow: 0, red: 0 };
+      cur.yellow += awayYellow;
+      cur.red += awayRed;
+      fixtureCards.set(awayId, cur);
     }
 
-    if (awayId) {
-      const cur = fixtureStats.get(awayId) || { yellow: 0, red: 0, cleanSheets: 0, matches: 0, goals: 0, conceded: 0 };
-      cur.yellow += Number(res.away_yellow_cards) || 0;
-      cur.red += Number(res.away_red_cards) || 0;
-      cur.goals += Number(res.away_score) || 0;
-      cur.conceded += Number(res.home_score) || 0;
-      cur.matches += 1;
-      if ((res.home_score ?? 0) === 0) cur.cleanSheets += 1;
-      fixtureStats.set(awayId, cur);
+    if (homeId && teamStatsMap.has(homeId)) {
+      const homeEntry = teamStatsMap.get(homeId)!;
+      if (awayScore === 0) homeEntry.cleanSheets += 1;
+
+      // Add match stats for knockout matches (Quarter-Finals, Semi-Finals, Finals, etc.)
+      // OR if tournament has no league standings table, count all completed fixtures
+      if (isKnockout || !hasLeagueStandings) {
+        homeEntry.played += 1;
+        homeEntry.goalsFor += homeScore;
+        homeEntry.goalsAgainst += awayScore;
+      }
+    }
+
+    if (awayId && teamStatsMap.has(awayId)) {
+      const awayEntry = teamStatsMap.get(awayId)!;
+      if (homeScore === 0) awayEntry.cleanSheets += 1;
+
+      if (isKnockout || !hasLeagueStandings) {
+        awayEntry.played += 1;
+        awayEntry.goalsFor += awayScore;
+        awayEntry.goalsAgainst += homeScore;
+      }
     }
   }
 
-  // Merge fixture cards with standings
+  // Recalculate goal difference, cards, and fair play scores
   for (const [id, entry] of teamStatsMap.entries()) {
-    const fStats = fixtureStats.get(id);
-    if (fStats) {
-      entry.yellowCards = Math.max(entry.yellowCards, fStats.yellow);
-      entry.redCards = Math.max(entry.redCards, fStats.red);
-      entry.cleanSheets = fStats.cleanSheets;
-      if (entry.played === 0) {
-        entry.played = fStats.matches;
-        entry.goalsFor = fStats.goals;
-        entry.goalsAgainst = fStats.conceded;
-        entry.goalDiff = fStats.goals - fStats.conceded;
-      }
+    const fCards = fixtureCards.get(id);
+    if (fCards) {
+      entry.yellowCards = Math.max(entry.yellowCards, fCards.yellow);
+      entry.redCards = Math.max(entry.redCards, fCards.red);
     }
+    entry.goalDiff = entry.goalsFor - entry.goalsAgainst;
     // FIFA/UEFA Fair Play metric: 1 pt per yellow, 3 pts per red
     entry.fairPlayScore = entry.yellowCards * 1 + entry.redCards * 3;
   }
@@ -686,6 +737,8 @@ function Statistics({
   });
 
   // Aggregate Totals
+  const totalTournamentGoals = allTeamStats.reduce((acc, t) => acc + t.goalsFor, 0);
+  const totalTournamentMatches = Math.round(allTeamStats.reduce((acc, t) => acc + t.played, 0) / 2);
   const totalYellows = allTeamStats.reduce((acc, t) => acc + t.yellowCards, 0);
   const totalReds = allTeamStats.reduce((acc, t) => acc + t.redCards, 0);
 
@@ -739,25 +792,25 @@ function Statistics({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Goals"
-          value={goals}
-          hint={completed.length ? `${(goals / completed.length).toFixed(2)} goals / match` : "0.00 / match"}
+          value={totalTournamentGoals}
+          hint={totalTournamentMatches ? `${(totalTournamentGoals / totalTournamentMatches).toFixed(2)} goals / match` : "0.00 / match"}
           icon={<Goal className="size-4 text-primary" />}
         />
         <StatCard
           label="Yellow Cards 🟨"
           value={totalYellows}
-          hint={completed.length ? `${(totalYellows / completed.length).toFixed(2)} cards / match` : "0.00 / match"}
+          hint={totalTournamentMatches ? `${(totalYellows / totalTournamentMatches).toFixed(2)} cards / match` : "0.00 / match"}
           icon={<AlertTriangle className="size-4 text-yellow-400" />}
         />
         <StatCard
           label="Red Cards 🟥"
           value={totalReds}
-          hint={completed.length ? `${(totalReds / completed.length).toFixed(2)} send-offs / match` : "0 send-offs"}
+          hint={totalTournamentMatches ? `${(totalReds / totalTournamentMatches).toFixed(2)} send-offs / match` : "0 send-offs"}
           icon={<ShieldAlert className="size-4 text-red-500" />}
         />
         <StatCard
           label="Total Matches"
-          value={completed.length}
+          value={totalTournamentMatches}
           hint={highest ? `Highest: ${highest.home?.name} ${highest.result?.home_score}-${highest.result?.away_score} ${highest.away?.name}` : "Matches played"}
           icon={<Trophy className="size-4 text-amber-400" />}
         />
@@ -975,7 +1028,7 @@ function Statistics({
               <Goal className="size-5" /> Most Goals Leaderboard
             </h3>
             <span className="text-xs text-muted-foreground">
-              {goals} total tournament goals
+              {totalTournamentGoals} total tournament goals
             </span>
           </div>
 

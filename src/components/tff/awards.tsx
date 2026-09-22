@@ -32,10 +32,45 @@ export function TournamentAwardsSection({
   // 1. Custom / Manual awards set by Admin
   const customAward = getTournamentAwards(tournament.id);
 
-  // 2. Computed Team Awards from standings & fixtures
-  const ranked = sortStandings(standings);
-  const topScoringTeamRow = [...ranked].sort((a, b) => b.goals_for - a.goals_for)[0];
-  const bestDefenseTeamRow = [...ranked].sort((a, b) => a.goals_against - b.goals_against)[0];
+  // 2. Computed Team Awards from standings & fixtures (including knockout matches)
+  const teamTotalStats = new Map<string, { goalsFor: number; goalsAgainst: number }>();
+  for (const row of standings) {
+    teamTotalStats.set(row.team_id, {
+      goalsFor: Number(row.goals_for) || 0,
+      goalsAgainst: Number(row.goals_against) || 0,
+    });
+  }
+
+  for (const f of completedFixtures) {
+    if (f.status === "completed" && f.result) {
+      const isKnockout = f.stage === "knockout" || Boolean(f.round && f.round.trim().length > 0);
+      if (isKnockout || standings.length === 0) {
+        const hs = Number(f.result.home_score) || 0;
+        const as = Number(f.result.away_score) || 0;
+        if (f.home_team_id) {
+          const cur = teamTotalStats.get(f.home_team_id) || { goalsFor: 0, goalsAgainst: 0 };
+          cur.goalsFor += hs;
+          cur.goalsAgainst += as;
+          teamTotalStats.set(f.home_team_id, cur);
+        }
+        if (f.away_team_id) {
+          const cur = teamTotalStats.get(f.away_team_id) || { goalsFor: 0, goalsAgainst: 0 };
+          cur.goalsFor += as;
+          cur.goalsAgainst += hs;
+          teamTotalStats.set(f.away_team_id, cur);
+        }
+      }
+    }
+  }
+
+  const allTeamStatsList = Array.from(teamTotalStats.entries()).map(([team_id, stats]) => ({
+    team_id,
+    goals_for: stats.goalsFor,
+    goals_against: stats.goalsAgainst,
+  }));
+
+  const topScoringTeamRow = [...allTeamStatsList].sort((a, b) => b.goals_for - a.goals_for)[0];
+  const bestDefenseTeamRow = [...allTeamStatsList].sort((a, b) => a.goals_against - b.goals_against)[0];
 
   const topScoringTeam = topScoringTeamRow?.team_id ? teamsMap.get(topScoringTeamRow.team_id) : null;
   const bestDefenseTeam = bestDefenseTeamRow?.team_id ? teamsMap.get(bestDefenseTeamRow.team_id) : null;
